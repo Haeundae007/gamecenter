@@ -17,15 +17,17 @@ function rememberNick(n) {
 // 닉네임 물어보고 등록. 결과 문구를 돌려줌.
 export async function submitScore(gameId, score) {
   const g = gameById(gameId);
-  if (!validScore(gameId, score)) return '기록이 이상해서 등록 안 됨';
-  const nick = await askNick(`${score}${g.unit}`);
-  if (!nick) return '등록 안 함';
+  if (!validScore(gameId, score)) return '기록을 확인할 수 없어 등록하지 못했어요.';
+  const nick = await askNick(`${score.toLocaleString('ko-KR')}${g.unit}`);
+  if (!nick) return '';
   rememberNick(nick);
   try {
     const r = await store.submit(gameId, nick, score);
-    return r.improved ? `${nick} · ${r.rank}등으로 등록!` : `${nick} · 최고 기록(${r.best}${g.unit})이 더 좋아서 그대로 ${r.rank}등`;
+    return r.improved
+      ? `${nick}님, ${r.rank}위로 등록됐어요!`
+      : `기존 최고 기록(${r.best.toLocaleString('ko-KR')}${g.unit})이 더 좋아서 ${r.rank}위가 유지돼요.`;
   } catch (e) {
-    return '등록 실패: ' + e.message;
+    return '등록하지 못했어요. 잠시 후 다시 시도해 주세요.';
   }
 }
 
@@ -35,10 +37,11 @@ function askNick(scoreText) {
     box.className = 'gc-ask';
     box.innerHTML = `
       <form>
-        <p>기록 <b></b></p>
-        <label>닉네임 <input name="nick" maxlength="10" autocomplete="off"></label>
-        <div class="gc-ask-btns"><button type="submit">등록</button><button type="button" data-skip>안 할래</button></div>
-        <small>2~10자</small>
+        <h3>기록 등록</h3>
+        <p>이번 기록은 <b></b>예요.</p>
+        <input name="nick" maxlength="10" autocomplete="off" placeholder="닉네임">
+        <small>2~10자로 입력해 주세요.</small>
+        <div class="gc-ask-btns"><button type="button" class="sub" data-skip>건너뛰기</button><button type="submit">등록하기</button></div>
       </form>`;
     box.querySelector('b').textContent = scoreText;
     const input = box.querySelector('input');
