@@ -1,167 +1,110 @@
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
-
+/* 임시 뼈대 스타일. 디자인 정해지면 이 변수들부터 바꾸면 됨. */
 :root {
-  --bg: #f2f4f6;
-  --card: #fff;
-  --text: #191f28;
-  --sub: #6b7684;
-  --weak: #8b95a1;
-  --border: #e5e8eb;
-  --primary: #3182f6;
-  --primary-press: #1b64da;
-  --primary-soft: #e8f3ff;
-  --radius: 14px;
+  --bg: #fff;
+  --fg: #111;
+  --dim: #777;
+  --line: #111;
+  --hl: #ff0;
+  --font: system-ui, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body {
   background: var(--bg);
-  color: var(--text);
-  font-family: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-  font-size: 15px;
-  line-height: 1.5;
-  letter-spacing: -0.02em;
-  -webkit-font-smoothing: antialiased;
-}
-a { color: inherit; text-decoration: none; }
-
-/* 상단 */
-.top {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: rgba(255, 255, 255, .92);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--border);
-}
-.top-inner {
-  max-width: 880px;
+  color: var(--fg);
+  font: 16px/1.5 var(--font);
+  max-width: 760px;
   margin: 0 auto;
-  height: 56px;
-  padding: 0 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.logo { font-size: 18px; font-weight: 700; }
-nav { display: flex; gap: 4px; }
-nav a { padding: 8px 12px; border-radius: 8px; color: var(--sub); font-weight: 600; }
-nav a:hover { background: var(--bg); }
-nav a.on { color: var(--text); }
-
-.wrap { max-width: 880px; margin: 0 auto; padding: 24px 20px 48px; }
-.page-title { font-size: 22px; font-weight: 700; margin: 4px 0 4px; }
-.page-sub { color: var(--sub); margin: 0 0 20px; }
-
-/* 버튼 */
-.btn, button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
   padding: 0 16px;
-  border: 0;
-  border-radius: 10px;
+}
+a { color: inherit; }
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 18px 0 10px;
+  border-bottom: 2px solid var(--line);
+}
+.logo { font-weight: 800; font-size: 20px; text-decoration: none; }
+nav { display: flex; gap: 14px; }
+nav a { text-decoration: none; }
+nav a.on { text-decoration: underline; text-underline-offset: 4px; }
+
+h1, h2 { font-size: 18px; margin: 22px 0 10px; }
+.dim { color: var(--dim); font-size: 14px; }
+
+/* 게임 목록 */
+.games { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.games li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.games .no { font-family: var(--mono); width: 2.2em; color: var(--dim); }
+.games .info { flex: 1; min-width: 0; }
+.games .name { font-weight: 700; }
+.games .desc { color: var(--dim); font-size: 14px; }
+.games .best { font-family: var(--mono); font-size: 13px; color: var(--dim); white-space: nowrap; }
+
+.btn, button {
   font: inherit;
-  font-weight: 600;
+  font-size: 14px;
+  padding: 6px 12px;
+  border: 2px solid var(--line);
+  background: var(--bg);
+  color: var(--fg);
   cursor: pointer;
-  background: var(--primary);
-  color: #fff;
-  transition: background .15s;
+  text-decoration: none;
   white-space: nowrap;
 }
-.btn:hover, button:hover { background: var(--primary-press); }
-.btn.sub, button.sub { background: var(--bg); color: var(--text); }
-.btn.sub:hover, button.sub:hover { background: var(--border); }
-.btn[aria-disabled="true"] { background: var(--bg); color: var(--weak); pointer-events: none; }
-
-/* 게임 카드 */
-.games { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
-.card { background: var(--card); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
-.thumb {
-  aspect-ratio: 16 / 9;
-  display: grid;
-  place-items: center;
-  color: rgba(255, 255, 255, .95);
-  font-size: 26px;
-  font-weight: 800;
-}
-.card-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
-.card-title { font-size: 17px; font-weight: 700; }
-.card-desc { color: var(--sub); font-size: 14px; flex: 1; }
-.card-best { color: var(--primary); font-size: 13px; font-weight: 600; min-height: 20px; }
-.card-actions { display: flex; gap: 8px; margin-top: 8px; }
-.card-actions .btn { flex: 1; }
+.btn:hover, button:hover { background: var(--fg); color: var(--bg); }
+.btn[aria-disabled="true"] { opacity: .35; pointer-events: none; }
 
 /* 랭킹 */
-.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; }
-.chips a {
-  flex: none;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: var(--card);
-  color: var(--sub);
-  font-weight: 600;
-  font-size: 14px;
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0; }
+.tabs a { padding: 4px 10px; border: 1px solid var(--line); text-decoration: none; font-size: 14px; }
+.tabs a.on { background: var(--fg); color: var(--bg); }
+
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { text-align: left; padding: 7px 4px; border-bottom: 1px solid #ddd; }
+th { border-bottom: 2px solid var(--line); font-size: 13px; color: var(--dim); font-weight: 600; }
+td.num, th.num { text-align: right; font-family: var(--mono); }
+tr.me td { background: var(--hl); }
+.empty { padding: 24px 0; color: var(--dim); }
+
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  margin: 40px 0 24px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--dim);
 }
-.chips a.on { background: var(--text); color: #fff; }
 
-.board { background: var(--card); border-radius: var(--radius); padding: 6px 0; }
-.row { display: flex; align-items: center; gap: 12px; padding: 12px 18px; }
-.row + .row { border-top: 1px solid var(--bg); }
-.row.me { background: var(--primary-soft); }
-.rank {
-  width: 28px;
-  height: 28px;
-  flex: none;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--sub);
-}
-.rank.r1 { background: #ffd43b; color: #6b4e00; }
-.rank.r2 { background: #dee2e6; color: #495057; }
-.rank.r3 { background: #f0b88a; color: #6b3a12; }
-.who { flex: 1; min-width: 0; }
-.who .name { font-weight: 600; }
-.who .meta { color: var(--weak); font-size: 13px; }
-.score { font-weight: 700; font-variant-numeric: tabular-nums; }
-.empty { padding: 40px 0; text-align: center; color: var(--weak); }
-.note { color: var(--weak); font-size: 13px; margin: 12px 4px 0; }
-
-/* 하단 */
-.bottom { max-width: 880px; margin: 0 auto; padding: 0 20px 32px; color: var(--weak); font-size: 13px; }
-
-/* 기록 등록 팝업 (게임 페이지에서도 씀) */
+/* 점수 등록 창 (게임 페이지에서도 씀) */
 .gc-ask {
   position: fixed;
   inset: 0;
-  z-index: 1000;
   display: grid;
   place-items: center;
-  padding: 20px;
-  background: rgba(0, 0, 0, .45);
-  font-family: 'Pretendard Variable', Pretendard, sans-serif;
-  letter-spacing: -0.02em;
+  background: rgba(0, 0, 0, .5);
+  padding: 16px;
+  z-index: 1000;
 }
-.gc-ask form { width: 100%; max-width: 340px; background: #fff; border-radius: 18px; padding: 24px 20px 18px; }
-.gc-ask h3 { margin: 0 0 4px; font-size: 19px; }
-.gc-ask p { margin: 0 0 16px; color: var(--sub); }
-.gc-ask p b { color: var(--primary); }
-.gc-ask input {
+.gc-ask form {
+  background: var(--bg);
+  color: var(--fg);
+  border: 2px solid var(--line);
+  padding: 16px 18px;
   width: 100%;
-  height: 48px;
-  padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  font: inherit;
-  font-size: 16px;
-  outline: none;
+  max-width: 300px;
+  font-family: var(--font);
 }
-.gc-ask input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
-.gc-ask small { display: block; color: var(--weak); margin-top: 6px; }
-.gc-ask-btns { display: flex; gap: 8px; margin-top: 18px; }
-.gc-ask-btns button { flex: 1; height: 48px; font-size: 16px; }
+.gc-ask h3 { margin: 0 0 6px; font-size: 16px; }
+.gc-ask p { margin: 0 0 10px; }
+.gc-ask input { font: inherit; width: 100%; padding: 6px 8px; border: 2px solid var(--line); }
+.gc-ask small { display: block; color: var(--dim); margin-top: 4px; }
+.gc-ask-btns { display: flex; gap: 8px; margin-top: 12px; }
+.gc-ask-btns button { flex: 1; }
