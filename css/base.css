@@ -1,0 +1,108 @@
+/* 임시 뼈대 스타일. 디자인 정해지면 이 변수들부터 바꾸면 됨. */
+:root {
+  --bg: #fff;
+  --fg: #111;
+  --dim: #777;
+  --line: #111;
+  --hl: #ff0;
+  --font: system-ui, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.5 var(--font);
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+a { color: inherit; }
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 18px 0 10px;
+  border-bottom: 2px solid var(--line);
+}
+.logo { font-weight: 800; font-size: 20px; text-decoration: none; }
+nav { display: flex; gap: 14px; }
+nav a { text-decoration: none; }
+nav a.on { text-decoration: underline; text-underline-offset: 4px; }
+
+h1, h2 { font-size: 18px; margin: 22px 0 10px; }
+.dim { color: var(--dim); font-size: 14px; }
+
+/* 게임 목록 */
+.games { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.games li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.games .no { font-family: var(--mono); width: 2.2em; color: var(--dim); }
+.games .info { flex: 1; min-width: 0; }
+.games .name { font-weight: 700; }
+.games .desc { color: var(--dim); font-size: 14px; }
+.games .best { font-family: var(--mono); font-size: 13px; color: var(--dim); white-space: nowrap; }
+
+.btn, button {
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 12px;
+  border: 2px solid var(--line);
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn:hover, button:hover { background: var(--fg); color: var(--bg); }
+.btn[aria-disabled="true"] { opacity: .35; pointer-events: none; }
+
+/* 랭킹 */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0; }
+.tabs a { padding: 4px 10px; border: 1px solid var(--line); text-decoration: none; font-size: 14px; }
+.tabs a.on { background: var(--fg); color: var(--bg); }
+
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { text-align: left; padding: 7px 4px; border-bottom: 1px solid #ddd; }
+th { border-bottom: 2px solid var(--line); font-size: 13px; color: var(--dim); font-weight: 600; }
+td.num, th.num { text-align: right; font-family: var(--mono); }
+tr.me td { background: var(--hl); }
+.empty { padding: 24px 0; color: var(--dim); }
+
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  margin: 40px 0 24px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--dim);
+}
+
+/* 점수 등록 창 (게임 페이지에서도 씀) */
+.gc-ask {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, .5);
+  padding: 16px;
+  z-index: 1000;
+}
+.gc-ask form {
+  background: var(--bg);
+  color: var(--fg);
+  border: 2px solid var(--line);
+  padding: 16px 18px;
+  width: 100%;
+  max-width: 300px;
+  font-family: var(--font);
+}
+.gc-ask p { margin: 0 0 10px; }
+.gc-ask input { font: inherit; width: 100%; padding: 6px 8px; border: 2px solid var(--line); margin-top: 4px; }
+.gc-ask-btns { display: flex; gap: 8px; margin: 12px 0 4px; }
+.gc-ask small { color: var(--dim); }

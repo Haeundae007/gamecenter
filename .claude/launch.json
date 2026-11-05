@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "gamecenter",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8130", "--bind", "127.0.0.1", "--directory", "C:\\Users\\HDCAD-401-019\\Downloads\\gamecenter"],
+      "port": 8130
+    }
+  ]
+}

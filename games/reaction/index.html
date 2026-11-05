@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>반응속도 · 배기원의 게임센터</title>
+<link rel="stylesheet" href="../../css/base.css">
+<style>
+  #pad {
+    height: 300px;
+    margin: 16px 0;
+    border: 2px solid var(--line);
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    font-weight: 700;
+    user-select: none;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  #pad.wait { background: #ddd; }
+  #pad.go { background: #0c0; color: #fff; }
+  #pad.early { background: #c00; color: #fff; }
+  #msg { min-height: 1.5em; }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="../../#/">배기원의 게임센터</a>
+  <nav><a href="../../#/rank/reaction">랭킹</a></nav>
+</header>
+
+<h1>반응속도</h1>
+<p class="dim">초록색 되면 바로 눌러. 5번 평균이 기록.</p>
+<div id="pad">눌러서 시작</div>
+<p id="msg"></p>
+
+<script type="module">
+import { submitScore } from '../../js/gc.js';
+
+const ROUNDS = 5;
+const pad = document.getElementById('pad');
+const msg = document.getElementById('msg');
+let state = 'idle', timer = 0, shownAt = 0, times = [];
+
+function set(cls, text) { pad.className = cls; pad.textContent = text; }
+
+function next() {
+  state = 'wait';
+  set('wait', '기다려…');
+  timer = setTimeout(() => { state = 'go'; shownAt = performance.now(); set('go', '지금!'); }, 900 + Math.random() * 2200);
+}
+
+async function finish() {
+  const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+  state = 'idle';
+  set('', `평균 ${avg}ms · 다시 하려면 눌러`);
+  msg.textContent = await submitScore('reaction', avg);
+}
+
+pad.addEventListener('pointerdown', () => {
+  if (state === 'idle') { times = []; msg.textContent = ''; next(); }
+  else if (state === 'wait') { clearTimeout(timer); state = 'early'; set('early', '너무 빨라! 눌러서 다시'); }
+  else if (state === 'early') next();
+  else if (state === 'go') {
+    times.push(Math.round(performance.now() - shownAt));
+    msg.textContent = times.map((t, i) => `${i + 1}: ${t}ms`).join('  ');
+    if (times.length >= ROUNDS) finish();
+    else next();
+  }
+});
+</script>
+</body>
+</html>
