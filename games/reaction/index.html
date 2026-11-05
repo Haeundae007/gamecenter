@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>반응속도 테스트 · 배기원의 게임센터</title>
 <link rel="stylesheet" href="../../css/base.css">
+<link rel="stylesheet" href="../../css/comments.css">
 <style>
   #pad {
     height: 300px;
@@ -39,8 +40,12 @@
 <div class="laps" id="laps"></div>
 <p id="msg"></p>
 
+<section id="comments"></section>
+
 <script type="module">
 import { submitScore } from '../../js/gc.js';
+import { mountComments } from '../../js/comments.js';
+mountComments(document.getElementById('comments'), 'reaction');
 
 const ROUNDS = 5;
 const pad = document.getElementById('pad');

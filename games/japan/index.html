@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>배기원 일본 취업 성공시키기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/galmuri.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="../../css/comments.css">
+</head>
+<body>
+<div class="game">
+  <header class="hud">
+    <a class="back" href="../../#/">← 게임센터</a>
+    <div class="day"><span id="dday">D-11</span> <small id="dayn">1일차</small></div>
+    <div class="clock" id="clock">07:00</div>
+    <button id="pause" class="mini">II</button>
+  </header>
+
+  <div class="bars">
+    <div class="bar"><span>체력</span><div><i id="b-hp"></i></div></div>
+    <div class="bar"><span>배부름</span><div><i id="b-full"></i></div></div>
+    <div class="bar"><span>멘탈</span><div><i id="b-mind"></i></div></div>
+    <div class="money" id="money">120,000원</div>
+  </div>
+
+  <div class="stage">
+    <canvas id="room" width="160" height="100"></canvas>
+    <div id="bubble" class="bubble" hidden></div>
+    <div id="ff" class="ff" hidden></div>
+  </div>
+
+  <section id="panel" class="panel"></section>
+
+  <section id="comments"></section>
+</div>
+
+<div id="modal" class="modal" hidden>
+  <div class="card">
+    <h3 id="m-title"></h3>
+    <div id="m-text"></div>
+    <div id="m-choices" class="choices"></div>
+  </div>
+</div>
+
+<script type="module" src="game.js"></script>
+<script type="module">
+import { mountComments } from '../../js/comments.js';
+mountComments(document.getElementById('comments'), 'japan');
+</script>
+</body>
+</html>

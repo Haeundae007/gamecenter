@@ -5,6 +5,7 @@
 // js/games.js 랑 맞춰야 함
 var GAMES = {
   reaction: { order: 'asc', min: 80, max: 2000 },
+  japan: { order: 'desc', min: 0, max: 99999 },
   popo: { order: 'desc', min: 0, max: 999 },
   velvet: { order: 'desc', min: 0, max: 999999 },
 };
@@ -91,11 +92,48 @@ function submit_(p) {
   return { improved: improved, rank: rank, best: best };
 }
 
+// ---- 코멘트 (시트 'comments', 열: game | kind | name | text | at) ----
+function commentSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName('comments');
+  if (!sh) {
+    sh = ss.insertSheet('comments');
+    sh.appendRow(['game', 'kind', 'name', 'text', 'at']);
+  }
+  return sh;
+}
+
+function comments_(game) {
+  var values = commentSheet_().getDataRange().getValues();
+  var out = [];
+  for (var i = values.length - 1; i >= 1 && out.length < 100; i--) {
+    if (values[i][0] === game) out.push({ kind: values[i][1], name: String(values[i][2]), text: String(values[i][3]), at: Number(values[i][4]) });
+  }
+  return { comments: out };
+}
+
+function comment_(p) {
+  if (!GAMES[p.game]) return { error: '없는 게임' };
+  var kind = { nick: 1, real: 1, anon: 1 }[p.kind] ? p.kind : 'anon';
+  var name = String(p.name || '').replace(/[<>"'`=]/g, '').trim().slice(0, 10);
+  var text = String(p.text || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 200);
+  if (name.length < 2) return { error: '이름은 2자 이상' };
+  if (text.length < 2) return { error: '내용을 입력해 주세요' };
+  var cache = CacheService.getScriptCache();
+  var key = 'cm_' + p.game + '_' + name;
+  if (cache.get(key)) return { error: '조금 있다가 다시 남겨 주세요' };
+  cache.put(key, '1', 10);
+  commentSheet_().appendRow([p.game, kind, name, text, Date.now()]);
+  return { ok: true };
+}
+
 function doGet(e) {
   var p = e.parameter || {};
   var res;
   try {
     if (p.action === 'submit') res = submit_(p);
+    else if (p.action === 'comments') res = comments_(p.game);
+    else if (p.action === 'comment') res = comment_(p);
     else res = readAll_();
   } catch (err) {
     res = { error: String(err) };

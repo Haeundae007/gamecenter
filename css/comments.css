@@ -1,0 +1,18 @@
+/* 코멘트 섹션. 게임마다 디자인이 달라서 따로 둠. */
+.gc-cm { margin-top: 24px; font-size: 14px; }
+.gc-cm h3 { font-size: 16px; margin: 0 0 8px; }
+.gc-cm-form { display: grid; gap: 6px; padding: 10px; border: 2px solid #111; background: #fff; color: #111; }
+.gc-cm-kinds { display: flex; gap: 14px; }
+.gc-cm-kinds label { cursor: pointer; }
+.gc-cm-form input.gc-cm-name, .gc-cm-form textarea { font: inherit; padding: 6px 8px; border: 2px solid #111; width: 100%; resize: vertical; }
+.gc-cm-name[hidden] { display: none; }
+.gc-cm-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.gc-cm-row button { font: inherit; padding: 4px 14px; border: 2px solid #111; background: #fff; cursor: pointer; }
+.gc-cm-row button:hover { background: #111; color: #fff; }
+.gc-cm-msg { color: #c00; font-size: 12px; }
+.gc-cm-list { list-style: none; margin: 10px 0 0; padding: 0; }
+.gc-cm-list li { padding: 8px 2px; border-bottom: 1px solid #ccc; }
+.gc-cm-list p { margin: 2px 0 0; white-space: pre-wrap; word-break: break-all; }
+.gc-cm-tag { font-size: 11px; color: #777; border: 1px solid #aaa; padding: 0 4px; }
+.gc-cm-date { font-size: 11px; color: #999; }
+.gc-cm-empty { color: #888; border: none !important; }

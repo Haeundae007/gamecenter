@@ -16,6 +16,18 @@ export const GAMES = [
     badge: 'REACTION',
   },
   {
+    id: 'japan',
+    title: '배기원 일본 취업 성공시키기',
+    desc: '하루 단어 40개 외우면서 밥, 잠, 멘탈, 돈까지 챙기기. D-11.',
+    url: 'games/japan/',
+    order: 'desc',
+    unit: '점',
+    min: 0,
+    max: 99999,
+    color: '#5b7bd5',
+    badge: 'JAPAN',
+  },
+  {
     id: 'popo',
     title: '포포 키우기',
     desc: '하늘다람쥐에게 30일 동안 무엇을 가르칠까요?',
