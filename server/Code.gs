@@ -6,6 +6,8 @@
 var GAMES = {
   reaction: { order: 'asc', min: 80, max: 2000 },
   japan: { order: 'desc', min: 0, max: 99999 },
+  deepsea: { order: 'desc', min: 0, max: 9999 },
+  alley: { order: 'desc', min: 0, max: 20000 },
   popo: { order: 'desc', min: 0, max: 999 },
   velvet: { order: 'desc', min: 0, max: 999999 },
 };
