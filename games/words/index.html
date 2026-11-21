@@ -108,7 +108,7 @@ body{margin:0}
   var renderer;
   try { renderer = new T.WebGLRenderer({ canvas: $('sky'), antialias: !slowGpu && !mobile, powerPreference: 'high-performance' }); }
   catch (e) { $('note').textContent = '이 기기에서는 3D 화면을 켤 수 없습니다.'; return; }
-  var basePR = slowGpu ? 0.6 : Math.min(devicePixelRatio || 1, mobile ? 1 : 1.25), quality = 1;
+  var basePR = slowGpu ? 0.6 : Math.min(devicePixelRatio || 1, mobile ? 2 : 1.25), quality = 1;
   renderer.setPixelRatio(basePR);
   // 갈대 사이에 서서 살짝 올려다보는 눈높이
   var camera = new T.PerspectiveCamera(64, 1, 0.1, 3000);
@@ -300,7 +300,10 @@ body{margin:0}
 
   /* ---------- 땅 위에 깔리는 안개 ---------- */
   var mistTex = (function () {
+    // 투명 캔버스를 쓰면 아이폰 사파리에서 옅은 가장자리가 무지개 점으로 깨진다.
+    // 그래서 검은 바탕에 흰색으로 짙기만 그리고, 이걸 투명도(alphaMap)로만 쓴다.
     var c = document.createElement('canvas'); c.width = 512; c.height = 128; var g = c.getContext('2d');
+    g.fillStyle = '#000'; g.fillRect(0, 0, 512, 128);
     for (var i = 0; i < 110; i++) {
       var x = Math.random() * 512, y = 64 + (Math.random() - .5) * 50, r = 20 + Math.random() * 60;
       for (var w = -1; w <= 1; w++) {
@@ -309,16 +312,16 @@ body{margin:0}
         g.fillStyle = gr; g.fillRect(x + w * 512 - r, y - r, r * 2, r * 2);
       }
     }
-    g.globalCompositeOperation = 'destination-in';
+    // 위아래 끝으로 갈수록 검게 덮어서 띠 모양으로 흐려지게 한다.
     var fade = g.createLinearGradient(0, 0, 0, 128);
-    fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(0.45, 'rgba(0,0,0,1)'); fade.addColorStop(0.6, 'rgba(0,0,0,1)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
+    fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(0.45, 'rgba(0,0,0,0)'); fade.addColorStop(0.6, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,1)');
     g.fillStyle = fade; g.fillRect(0, 0, 512, 128);
     var t = new T.CanvasTexture(c); t.wrapS = T.RepeatWrapping; return t;
   })();
   var mists = [];
   [[-20, 500, 9, 2.0], [-70, 800, 16, 1.4], [-140, 1100, 26, 1.0], [-230, 1600, 40, 1.0]].forEach(function (m, i) {
     var tex = mistTex.clone(); tex.needsUpdate = true; tex.repeat.set(m[3] * 2, 1); tex.offset.x = Math.random();
-    var mesh = new T.Mesh(new T.PlaneGeometry(m[1], m[2]), new T.MeshBasicMaterial({ map: tex, color: col(C.mist), transparent: true, opacity: 0.75, depthWrite: false, fog: false }));
+    var mesh = new T.Mesh(new T.PlaneGeometry(m[1], m[2]), new T.MeshBasicMaterial({ alphaMap: tex, color: col(C.mist), transparent: true, opacity: 0.75, depthWrite: false, fog: false }));
     mesh.position.set(0, m[2] * 0.18 + hillAt(0, m[0]), m[0]);
     mesh.userData.speed = 0.004 + i * 0.002;
     scene3.add(mesh); mists.push(mesh);
@@ -742,7 +745,7 @@ body{margin:0}
   var last = performance.now(), demo = 4, simTime = 0;
   function draw() {
     birdU.time.value = simTime; reedU.time.value = simTime;
-    for (var i = 0; i < mists.length; i++) mists[i].material.map.offset.x = simTime * mists[i].userData.speed;
+    for (var i = 0; i < mists.length; i++) mists[i].material.alphaMap.offset.x = simTime * mists[i].userData.speed;
     if (!calm) sway(simTime);
     renderer.render(scene3, camera);
   }
