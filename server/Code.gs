@@ -1,3 +1,4 @@
+/** @OnlyCurrentDoc */
 // 배기원의 게임센터 랭킹 서버 (Google Apps Script)
 // 구글 시트에 붙여서 웹 앱으로 배포하면 됨. 순서는 DEPLOY.md 참고.
 // 시트 이름 'scores', 열: game | nick | score | at

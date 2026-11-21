@@ -2,7 +2,7 @@
 // 지금은 LocalStore(이 브라우저에만 저장). 구글 시트 붙이면 SERVER_URL만 채우면 됨.
 import { GAMES, gameById } from './games.js';
 
-export const SERVER_URL = ''; // Apps Script 배포 주소 (server/Code.gs 참고)
+export const SERVER_URL = 'https://script.google.com/macros/s/AKfycbwrGVJVSbxfMIp1Nn4qYQ-gjljjbBdLn41hGGuMDfW1cV3jHCj_RbUFq6Q-YeGb0zZirw/exec'; // Apps Script 배포 주소 (server/Code.gs 참고)
 
 const better = (g, a, b) => (g.order === 'asc' ? a < b : a > b);
 
