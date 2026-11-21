@@ -13,7 +13,7 @@ async function gamesPage() {
   const rows = GAMES.map((g, i) => {
     const list = all[g.id] || [];
     const mine = me ? list.findIndex(r => r.nick === me) : -1;
-    const best = mine >= 0 ? `내 최고 ${list[mine].score}${g.unit} · ${mine + 1}위` : '';
+    const best = !g.noRank && mine >= 0 ? `내 최고 ${list[mine].score}${g.unit} · ${mine + 1}위` : '';
     const play = g.url
       ? `<a class="btn" href="${g.url}">플레이</a>`
       : `<a class="btn" aria-disabled="true">준비 중</a>`;
@@ -28,7 +28,7 @@ async function gamesPage() {
 }
 
 function tabs(active) {
-  const list = [['', '종합'], ...GAMES.map(g => [g.id, g.title])];
+  const list = [['', '종합'], ...GAMES.filter(g => !g.noRank).map(g => [g.id, g.title])];
   return `<div class="tabs">${list.map(([id, name]) =>
     `<a href="#/rank${id ? '/' + id : ''}" class="${id === active ? 'on' : ''}">${esc(name)}</a>`).join('')}</div>`;
 }
@@ -70,7 +70,7 @@ async function rankPage(gameId = '') {
 function route() {
   const [, page, id] = location.hash.replace(/^#/, '').split('/');
   document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('on', a.dataset.nav === (page === 'rank' ? 'rank' : 'games')));
-  if (page === 'rank') rankPage(gameById(id) ? id : '');
+  if (page === 'rank') rankPage(gameById(id) && !gameById(id).noRank ? id : '');
   else gamesPage();
 }
 

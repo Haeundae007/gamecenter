@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>하고 싶은 말 · 배기원의 게임센터</title>
+<style>
+/* 레이아웃: 화면 전체가 안개 낀 들판. 아래에 흰 바탕·검은 선의 입력 줄 하나만 얹는다. */
+:root {
+  --paper: #ffffff;
+  --ink: #111111;
+  --haze: #b9c5cf;
+  --sans: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+}
+html, body { height: 100%; }
+body { background: var(--haze); color: var(--ink); overflow: hidden; font-family: var(--sans); }
+#sky { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+#panel {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 calc(16px + env(safe-area-inset-bottom, 0px));
+  display: flex; justify-content: center;
+}
+#form { width: min(640px, 100%); background: var(--paper); border: 2px solid var(--ink); display: grid; grid-template-columns: minmax(70px, 8.5rem) 1fr auto; }
+#who { min-width: 0; border: 0; border-right: 2px solid var(--ink); padding: 14px 12px; font: 500 16px/1.2 var(--sans); color: var(--ink); background: var(--paper); outline: none; }
+#who:focus-visible { box-shadow: inset 0 0 0 3px var(--ink); }
+#word { min-width: 0; border: 0; padding: 14px 16px; font: 500 18px/1.2 var(--sans); color: var(--ink); background: var(--paper); outline: none; }
+#word::placeholder { color: #6b6b6b; }
+#send { border: 0; border-left: 2px solid var(--ink); padding: 0 22px; font: 700 17px/1 var(--sans); background: var(--paper); color: var(--ink); cursor: pointer; }
+#send:hover, #send:focus-visible { background: var(--ink); color: var(--paper); }
+#word:focus-visible { box-shadow: inset 0 0 0 3px var(--ink); }
+#hint { position: fixed; left: 0; right: 0; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); text-align: center; font: 600 14px/1.3 var(--sans); color: var(--ink); pointer-events: none; }
+#hint span { background: var(--paper); border: 2px solid var(--ink); padding: 6px 10px; }
+#soundBtn { position: fixed; top: calc(16px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); border: 2px solid var(--ink); background: var(--paper); color: var(--ink); padding: 8px 12px; font: 600 14px/1 var(--sans); cursor: pointer; }
+#soundBtn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+#inboxBtn { position: fixed; top: calc(60px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); border: 2px solid var(--ink); background: var(--paper); color: var(--ink); padding: 8px 12px; font: 600 14px/1 var(--sans); cursor: pointer; }
+#inbox { position: fixed; top: calc(104px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: min(360px, calc(100% - 32px)); max-height: 60%; overflow-y: auto; background: var(--paper); border: 2px solid var(--ink); }
+#inbox h2 { margin: 0; padding: 10px 12px; font: 700 15px/1.2 var(--sans); border-bottom: 2px solid var(--ink); }
+#inbox ol { list-style: none; margin: 0; padding: 0; }
+#inbox li { padding: 8px 12px; border-bottom: 1px solid var(--ink); font: 500 14px/1.4 var(--sans); }
+#inbox li b { margin-right: 6px; }
+#inbox li small { display: block; color: #555; }
+#note { position: fixed; top: calc(16px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); background: var(--paper); border: 2px solid var(--ink); padding: 8px 12px; font: 600 14px/1.3 var(--sans); }
+[hidden]{display:none!important}
+body{margin:0}
+</style>
+</head>
+<body>
+
+<canvas id="sky"></canvas>
+<div id="note"><a href="../../#/" style="color:inherit">게임센터</a> · 찌르레기 <span id="count">0</span>마리</div>
+<button id="soundBtn" type="button" aria-pressed="false">소리 켜기</button>
+<button id="inboxBtn" type="button" hidden>받은 말</button>
+<section id="inbox" hidden><h2>받은 말 (나만 보임)</h2><ol id="inboxList"></ol></section>
+<div id="hint" hidden><span id="hintText"></span></div>
+<div id="panel">
+  <form id="form" autocomplete="off">
+    <input id="who" maxlength="12" placeholder="이름" aria-label="이름">
+    <input id="word" maxlength="8" placeholder="하고 싶은 말 (8자까지)" aria-label="하고 싶은 말">
+    <button id="send" type="submit">보내기</button>
+  </form>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  if (typeof THREE === 'undefined') { $('note').textContent = '3D 도구를 불러오지 못했습니다. 새로고침해 주세요.'; return; }
+  var T = THREE;
+
+  var mobile = matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 700;
+  var N = mobile ? 3000 : 5200;
+  var REEDS = mobile ? 18000 : 46000;
+  var calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- 안개 낀 아침의 색 ---------- */
+  var C = {
+    top: '#aec3da', mid: '#bdc8d2', fog: '#c4ccd3', density: 0.0095,
+    ground: '#66625a', reedA: '#7b6a57', reedB: '#3b3129', plume: '#8f8274',
+    tree: '#202426', bird: '#262b30', mist: '#dce2e7'
+  };
+  function col(h) { return new T.Color(h); }
+
+  var scene3 = new T.Scene();
+  scene3.fog = new T.FogExp2(col(C.fog), C.density);
+  document.body.style.background = C.fog;
+  var renderer;
+  try { renderer = new T.WebGLRenderer({ canvas: $('sky'), antialias: true }); }
+  catch (e) { $('note').textContent = '이 기기에서는 3D 화면을 켤 수 없습니다.'; return; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, mobile ? 1.5 : 2));
+  // 갈대 사이에 서서 살짝 올려다보는 눈높이
+  var camera = new T.PerspectiveCamera(64, 1, 0.1, 3000);
+  camera.position.set(0, 2.4, 40);
+  // 정면이 아니라 왼쪽 하늘을 비스듬히 올려다본다.
+  camera.lookAt(-38, 22, -55);
+  // 반듯하지 않게: 살짝 기울인 채 손에 든 카메라처럼 천천히 흔들린다.
+  var baseQuat = camera.quaternion.clone(), swayQ = new T.Quaternion(), swayE = new T.Euler();
+  function sway(t) {
+    swayE.set(Math.sin(t * 0.31) * 0.008 + Math.sin(t * 0.83) * 0.002, Math.sin(t * 0.23) * 0.014, -0.07 + Math.sin(t * 0.19) * 0.008);
+    camera.quaternion.copy(baseQuat).multiply(swayQ.setFromEuler(swayE));
+  }
+
+  /* ---------- 하늘 ---------- */
+  var skyU = { top: { value: col(C.top) }, mid: { value: col(C.mid) }, low: { value: col(C.fog) } };
+  var sky = new T.Mesh(new T.SphereGeometry(1400, 32, 16), new T.ShaderMaterial({
+    side: T.BackSide, depthWrite: false, uniforms: skyU, fog: false,
+    vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+    fragmentShader: [
+      'uniform vec3 top, mid, low; varying vec3 vDir;',
+      'float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453); }',
+      'void main(){',
+      '  float h = normalize(vDir).y;',
+      '  vec3 c = mix(low, mid, smoothstep(0.0, 0.16, h));',
+      '  c = mix(c, top, smoothstep(0.12, 0.6, h));',
+      '  c += (hash(gl_FragCoord.xy) - 0.5) / 255.0;',
+      '  gl_FragColor = vec4(c, 1.0);',
+      '}'].join('\n')
+  }));
+  scene3.add(sky);
+
+  /* ---------- 땅 ---------- */
+  var groundTex = (function () {
+    var c = document.createElement('canvas'); c.width = c.height = 256; var g = c.getContext('2d');
+    g.fillStyle = '#808080'; g.fillRect(0, 0, 256, 256);
+    for (var i = 0; i < 2600; i++) { var v = 90 + Math.random() * 90 | 0; g.fillStyle = 'rgba(' + v + ',' + v + ',' + v + ',0.25)'; g.beginPath(); g.ellipse(Math.random() * 256, Math.random() * 256, 2 + Math.random() * 14, 1 + Math.random() * 5, Math.random() * 3, 0, 6.283); g.fill(); }
+    var t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(80, 80); t.anisotropy = 4; return t;
+  })();
+  // 완만하게 출렁이다가 멀리서 언덕으로 올라가는 땅
+  function hillAt(x, z) {
+    var far = Math.max(0, 30 - z);
+    var amp = Math.min(1, far / 70);
+    return amp * (2.6 * Math.sin(x * 0.021 + 0.6) + 1.7 * Math.sin(x * 0.047 + z * 0.031 + 2.0) + 1.1 * Math.sin(z * 0.06 - x * 0.012))
+      + far * 0.045 + Math.max(0, -x - 40) * 0.05 * amp;
+  }
+  var groundGeo = new T.PlaneGeometry(2400, 2400, 220, 220);
+  groundGeo.rotateX(-Math.PI / 2);
+  (function () {
+    var gp = groundGeo.attributes.position;
+    for (var i = 0; i < gp.count; i++) gp.setY(i, hillAt(gp.getX(i), gp.getZ(i)) - 0.05);
+    groundGeo.computeVertexNormals();
+  })();
+  var ground = new T.Mesh(groundGeo, new T.MeshBasicMaterial({ map: groundTex, color: col(C.ground) }));
+  scene3.add(ground);
+
+  /* ---------- 지평선의 수풀 띠 ----------
+     한 그루를 세우지 않고, 크기가 제각각인 덤불·관목·나무가 겹겹이 뭉친 띠를 만든다.
+     작은 덩어리 수천 개를 하나의 기하로 합쳐서 그리기 한 번에 끝낸다. */
+  var treeMat = new T.MeshBasicMaterial({ color: col(C.tree), vertexColors: true });
+  (function () {
+    var blob = new T.IcosahedronGeometry(1, 1).toNonIndexed();
+    var bp = blob.attributes.position, parts = [], cols = [];
+    var m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), sc = new T.Vector3();
+    function puff(x, y, z, sx, sy, sz, shade) {
+      e.set(Math.random() * 3, Math.random() * 3, Math.random() * 3); q.setFromEuler(e);
+      m4.compose(v.set(x, y + hillAt(x, z), z), q, sc.set(sx, sy, sz));
+      for (var i = 0; i < bp.count; i++) {
+        var p = new T.Vector3(bp.getX(i), bp.getY(i), bp.getZ(i));
+        // 덩어리 표면을 울퉁불퉁하게 흔든다.
+        p.multiplyScalar(0.8 + Math.random() * 0.35).applyMatrix4(m4);
+        parts.push(p.x, p.y, p.z);
+        var s = shade * (0.85 + Math.random() * 0.2); cols.push(s, s, s);
+      }
+    }
+    function stem(x, z, h, w) {
+      for (var t = 0; t < 1; t += 0.12) puff(x + (Math.random() - .5) * w, h * t, z, w * 0.35, h * 0.08, w * 0.35, 0.8);
+    }
+    // 덩어리 하나: 여러 줄기가 갈라진 키 작은 나무나 덤불
+    function clump(cx, cz, height, width) {
+      var trunks = 1 + Math.floor(Math.random() * 3);
+      for (var t = 0; t < trunks; t++) stem(cx + (Math.random() - .5) * width * 0.5, cz, height * 0.55, 0.7);
+      var n = Math.round(width * height * 0.35) + 8;
+      for (var i = 0; i < n; i++) {
+        var a = Math.random() * 6.283, r = Math.sqrt(Math.random());
+        var px = cx + Math.cos(a) * r * width * 0.5, pz = cz + Math.sin(a) * r * width * 0.25;
+        // 위로 갈수록 좁아지는 불규칙한 윤곽
+        var top = height * (0.55 + 0.45 * (1 - r * r)) * (0.75 + Math.random() * 0.4);
+        var py = top * (0.35 + Math.random() * 0.65);
+        var s = 0.9 + Math.random() * 2.2;
+        puff(px, py, pz, s * 1.3, s, s, 1);
+      }
+      // 삐죽 튀어나온 가는 가지 끝
+      for (var k = 0; k < 6; k++) {
+        var bx = cx + (Math.random() - .5) * width, by = height * (0.7 + Math.random() * 0.5);
+        puff(bx, by, cz, 0.35, 1.4, 0.35, 0.9);
+      }
+    }
+    // 앞쪽 띠: 덤불과 관목이 거의 이어진다.
+    for (var x = -260; x < 260; x += 6 + Math.random() * 10) {
+      if (Math.random() < 0.12) { x += 14; continue; }             // 사이사이 빈틈
+      clump(x, -88 - Math.random() * 16, 4 + Math.random() * 7, 8 + Math.random() * 14);
+    }
+    // 뒤쪽 띠: 키 큰 나무 무리가 듬성듬성
+    for (var x2 = -300; x2 < 300; x2 += 18 + Math.random() * 30) {
+      clump(x2, -112 - Math.random() * 30, 10 + Math.random() * 9, 14 + Math.random() * 18);
+    }
+    // 아주 먼 덤불 줄
+    for (var x3 = -500; x3 < 500; x3 += 20 + Math.random() * 30) clump(x3, -260 - Math.random() * 80, 6 + Math.random() * 6, 20 + Math.random() * 20);
+    var g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(parts, 3));
+    g.setAttribute('color', new T.Float32BufferAttribute(cols, 3));
+    scene3.add(new T.Mesh(g, treeMat));
+  })();
+  // 들판에 박힌 나무 기둥 몇 개
+  (function () {
+    var postMat = new T.MeshBasicMaterial({ color: col(C.tree) });
+    for (var p = 0; p < 4; p++) {
+      var post = new T.Mesh(new T.BoxGeometry(0.25, 2.2, 0.25), postMat);
+      var ppx = 14 + p * 7 + Math.random() * 3, ppz = -70 - Math.random() * 10;
+      post.position.set(ppx, 1.1 + hillAt(ppx, ppz), ppz);
+      scene3.add(post);
+    }
+  })();
+
+  /* ---------- 바람에 흔들리는 갈대 ---------- */
+  var reedU = T.UniformsUtils.merge([T.UniformsLib.fog, { time: { value: 0 }, colA: { value: col(C.reedA) }, colB: { value: col(C.reedB) }, plume: { value: col(C.plume) } }]);
+  var reedGeo = new T.InstancedBufferGeometry();
+  (function () {
+    var p = [], segs = 7;
+    for (var i = 0; i < segs; i++) {
+      var y0 = i / segs, y1 = (i + 1) / segs;
+      p.push(-0.5, y0, 0, 0.5, y0, 0, 0.5, y1, 0, -0.5, y0, 0, 0.5, y1, 0, -0.5, y1, 0);
+    }
+    reedGeo.setAttribute('position', new T.Float32BufferAttribute(p, 3));
+    var off = new Float32Array(REEDS * 3), info = new Float32Array(REEDS * 4), extra = new Float32Array(REEDS);
+    for (var k = 0; k < REEDS; k++) {
+      var z, x, near = k < REEDS * 0.32;
+      if (near) {            // 눈앞의 키 큰 갈대
+        z = 37.5 - 30 * Math.pow(Math.random(), 0.8);
+        x = -((40 - z) * 1.5 + 4) + Math.random() * ((40 - z) * 2.1 + 8);
+      } else {
+        z = 18 - 400 * Math.pow(Math.random(), 1.9);
+        x = -((40 - z) * 1.3 + 8) + Math.random() * ((40 - z) * 2.0 + 16);
+      }
+      off[k * 3] = x; off[k * 3 + 1] = hillAt(x, z) - 0.05; off[k * 3 + 2] = z;
+      // 가까울수록 낮게 두어 시야를 막지 않게 하고, 가끔 키 큰 줄기를 섞는다.
+      var tall = Math.random() < 0.12 ? 1.6 : 1;
+      info[k * 4] = (near ? 0.6 + Math.min(1, (40 - z) / 26) * 1.0 + Math.random() * 0.5 : 0.8 + Math.random() * 1.1) * tall;
+      info[k * 4 + 1] = Math.random() * 6.283;
+      info[k * 4 + 2] = Math.random();
+      info[k * 4 + 3] = near ? 0.018 + Math.random() * 0.016 : 0.05 + Math.random() * 0.05;
+      extra[k] = Math.random() < (near ? 0.45 : 0.2) ? 1 : 0;   // 이삭이 달린 갈대
+    }
+    reedGeo.setAttribute('offset', new T.InstancedBufferAttribute(off, 3));
+    reedGeo.setAttribute('info', new T.InstancedBufferAttribute(info, 4));
+    reedGeo.setAttribute('head', new T.InstancedBufferAttribute(extra, 1));
+    reedGeo.instanceCount = REEDS;
+  })();
+  var reeds = new T.Mesh(reedGeo, new T.ShaderMaterial({
+    uniforms: reedU, side: T.DoubleSide, fog: true,
+    vertexShader: [
+      'attribute vec3 offset; attribute vec4 info; attribute float head; uniform float time; varying float vY; varying float vTint; varying float vHead;',
+      '#include <fog_pars_vertex>',
+      'void main(){',
+      '  float y = position.y, h = info.x;',
+      '  float gust = sin(time * 0.5 - offset.x * 0.03 + offset.z * 0.025) * 0.5 + 0.5;',
+      '  float wave = sin(time * 2.3 + offset.x * 0.25 + offset.z * 0.19 + info.y) * 0.35;',
+      '  float bend = (0.2 + gust * 0.8) * (0.7 + wave);',
+      '  float plumeW = head * smoothstep(0.6, 0.78, y) * (1.0 - smoothstep(0.86, 1.0, y)) * 2.2;',
+      '  float c = cos(info.y), s = sin(info.y);',
+      '  vec3 p = vec3(position.x * info.w * (1.0 - y * 0.75 + plumeW), y * h, 0.0);',
+      '  p.xz = vec2(p.x * c, p.x * s);',
+      '  float b = bend * y * y;',
+      '  p.x += b * h * 0.5; p.z += b * h * 0.15; p.y -= b * b * h * 0.1;',
+      '  vec4 mvPosition = modelViewMatrix * vec4(p + offset, 1.0);',
+      '  gl_Position = projectionMatrix * mvPosition;',
+      '  vY = y; vTint = info.z; vHead = head * smoothstep(0.7, 0.8, y);',
+      '  #include <fog_vertex>',
+      '}'].join('\n'),
+    fragmentShader: [
+      'uniform vec3 colA, colB, plume; varying float vY; varying float vTint; varying float vHead;',
+      '#include <fog_pars_fragment>',
+      'void main(){',
+      '  vec3 c = mix(colB, colA, smoothstep(0.0, 0.7, vY));',
+      '  c = mix(c, plume, vHead);',
+      '  c *= 0.8 + vTint * 0.35;',
+      '  gl_FragColor = vec4(c, 1.0);',
+      '  #include <fog_fragment>',
+      '}'].join('\n')
+  }));
+  reeds.frustumCulled = false;
+  scene3.add(reeds);
+
+  /* ---------- 땅 위에 깔리는 안개 ---------- */
+  var mistTex = (function () {
+    var c = document.createElement('canvas'); c.width = 512; c.height = 128; var g = c.getContext('2d');
+    for (var i = 0; i < 110; i++) {
+      var x = Math.random() * 512, y = 64 + (Math.random() - .5) * 50, r = 20 + Math.random() * 60;
+      for (var w = -1; w <= 1; w++) {
+        var gr = g.createRadialGradient(x + w * 512, y, 0, x + w * 512, y, r);
+        gr.addColorStop(0, 'rgba(255,255,255,0.22)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = gr; g.fillRect(x + w * 512 - r, y - r, r * 2, r * 2);
+      }
+    }
+    g.globalCompositeOperation = 'destination-in';
+    var fade = g.createLinearGradient(0, 0, 0, 128);
+    fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(0.45, 'rgba(0,0,0,1)'); fade.addColorStop(0.6, 'rgba(0,0,0,1)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = fade; g.fillRect(0, 0, 512, 128);
+    var t = new T.CanvasTexture(c); t.wrapS = T.RepeatWrapping; return t;
+  })();
+  var mists = [];
+  [[-20, 500, 9, 2.0], [-70, 800, 16, 1.4], [-140, 1100, 26, 1.0], [-230, 1600, 40, 1.0]].forEach(function (m, i) {
+    var tex = mistTex.clone(); tex.needsUpdate = true; tex.repeat.set(m[3] * 2, 1); tex.offset.x = Math.random();
+    var mesh = new T.Mesh(new T.PlaneGeometry(m[1], m[2]), new T.MeshBasicMaterial({ map: tex, color: col(C.mist), transparent: true, opacity: 0.75, depthWrite: false, fog: false }));
+    mesh.position.set(0, m[2] * 0.18 + hillAt(0, m[0]), m[0]);
+    mesh.userData.speed = 0.004 + i * 0.002;
+    scene3.add(mesh); mists.push(mesh);
+  });
+
+  /* ---------- 새 ---------- */
+  var shape = [0, 0, 0.35, -1, 0, -0.08, 0, 0, -0.22, 0, 0, 0.35, 0, 0, -0.22, 1, 0, -0.08, 0, 0, -0.18, -0.22, 0, -0.5, 0.22, 0, -0.5];
+  var geo = new T.InstancedBufferGeometry();
+  geo.setAttribute('position', new T.Float32BufferAttribute(shape, 3));
+  var pos = new Float32Array(N * 3), vel = new Float32Array(N * 3), phase = new Float32Array(N), sizes = new Float32Array(N);
+  var posAttr = new T.InstancedBufferAttribute(pos, 3); posAttr.setUsage(T.DynamicDrawUsage);
+  var velAttr = new T.InstancedBufferAttribute(vel, 3); velAttr.setUsage(T.DynamicDrawUsage);
+  geo.setAttribute('offset', posAttr); geo.setAttribute('dir', velAttr);
+  geo.setAttribute('phase', new T.InstancedBufferAttribute(phase, 1));
+  geo.setAttribute('bsize', new T.InstancedBufferAttribute(sizes, 1));
+  geo.instanceCount = N;
+  var birdU = { time: { value: 0 }, bird: { value: col(C.bird) }, haze: { value: col(C.fog) }, density: { value: C.density } };
+  var birds = new T.Mesh(geo, new T.ShaderMaterial({
+    uniforms: birdU, side: T.DoubleSide,
+    vertexShader: [
+      'attribute vec3 offset; attribute vec3 dir; attribute float phase; attribute float bsize;',
+      'uniform float time, density; varying float vFog;',
+      'void main(){',
+      '  vec3 f = normalize(dir + vec3(0.0001, 0.0, 0.0));',
+      '  vec3 r = normalize(cross(f, vec3(0.0, 1.0, 0.0)) + vec3(0.0, 0.0001, 0.0));',
+      '  vec3 u = cross(r, f);',
+      '  vec3 p = position;',
+      '  float flap = sin(time * (13.0 + phase * 4.0) + phase * 6.2831);',
+      '  p.y += flap * abs(p.x) * 0.85;',
+      '  p.x *= 0.75 + 0.25 * abs(flap);',
+      '  vec4 mv0 = modelViewMatrix * vec4(offset, 1.0);',
+      '  float grow = 1.0 + max(-mv0.z - 50.0, 0.0) / 120.0;',
+      '  vec4 mv = modelViewMatrix * vec4(offset + (r * p.x + u * p.y + f * p.z) * bsize * grow, 1.0);',
+      '  float d = -mv.z * density * 0.65; vFog = 0.1 + 0.85 * (1.0 - exp(-d * d));',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'].join('\n'),
+    fragmentShader: 'uniform vec3 bird, haze; varying float vFog; void main(){ gl_FragColor = vec4(mix(bird, haze, vFog), 1.0); }'
+  }));
+  birds.frustumCulled = false;
+  scene3.add(birds);
+
+  var HOME = new T.Vector3(0, 30, -70);
+  for (var i = 0; i < N; i++) {
+    var a = Math.random() * 6.283, rr = Math.cbrt(Math.random()) * 30;
+    pos[i * 3] = HOME.x + Math.cos(a) * rr * 1.6; pos[i * 3 + 1] = HOME.y + (Math.random() - .5) * 16; pos[i * 3 + 2] = HOME.z + Math.sin(a) * rr;
+    vel[i * 3] = 9 + Math.random() * 2; vel[i * 3 + 1] = Math.random() - .5; vel[i * 3 + 2] = (Math.random() - .5) * 2;
+    phase[i] = Math.random(); sizes[i] = 0.3 + Math.random() * 0.14;
+  }
+  $('count').textContent = N.toLocaleString('ko-KR');
+
+  /* ---------- 이웃 찾기용 격자 ---------- */
+  var CELL = 5.6, TABLE = 65536;
+  var cellOf = new Int32Array(N), cellStart = new Int32Array(TABLE + 1), sorted = new Int32Array(N), fill = new Int32Array(TABLE);
+  function hashCell(x, y, z) { return (((x * 73856093) ^ (y * 19349663) ^ (z * 83492791)) >>> 0) % TABLE; }
+  function buildGrid() {
+    cellStart.fill(0);
+    for (var i = 0; i < N; i++) {
+      var c = hashCell(Math.floor(pos[i * 3] / CELL), Math.floor(pos[i * 3 + 1] / CELL), Math.floor(pos[i * 3 + 2] / CELL));
+      cellOf[i] = c; cellStart[c + 1]++;
+    }
+    for (var k = 0; k < TABLE; k++) cellStart[k + 1] += cellStart[k];
+    fill.set(cellStart.subarray(0, TABLE));
+    for (var j = 0; j < N; j++) sorted[fill[cellOf[j]]++] = j;
+  }
+
+  /* ---------- 글자 모양 → 목표 자리 ---------- */
+  var target = new Float32Array(N * 3), delay = new Float32Array(N), shaped = new Uint8Array(N);
+  var mode = 'free', modeTime = 0;
+  function makeTargets(text) {
+    var c = document.createElement('canvas'), g = c.getContext('2d');
+    var fontPx = 160, font = '900 ' + fontPx + 'px "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif';
+    g.font = font;
+    var w = Math.ceil(g.measureText(text).width) + 40, h = fontPx + 50;
+    c.width = w; c.height = h;
+    g.font = font; g.fillStyle = '#000'; g.textBaseline = 'middle'; g.textAlign = 'center';
+    g.fillText(text, w / 2, h / 2 + 6);
+    var data = g.getImageData(0, 0, w, h).data, pts = [], step = 3;
+    for (var y = 0; y < h; y += step) for (var x = 0; x < w; x += step) if (data[(y * w + x) * 4 + 3] > 140) pts.push(x, y);
+    if (!pts.length) return false;
+    // 글자는 지금 새떼가 있는 자리에서, 카메라를 향해 은근히 떠오른다.
+    var cm = new T.Vector3();
+    for (var q = 0; q < N; q++) { cm.x += pos[q * 3]; cm.y += pos[q * 3 + 1]; cm.z += pos[q * 3 + 2]; }
+    cm.multiplyScalar(1 / N);
+    var toCam = camera.position.clone().sub(cm), depth = toCam.length();
+    var vh = 2 * Math.tan(T.MathUtils.degToRad(camera.fov / 2)) * depth, vw = vh * camera.aspect;
+    var scale = Math.min(vw * 0.42 / w, vh * 0.2 / h);
+    var fwd = toCam.normalize().negate(), right = new T.Vector3(), up = new T.Vector3();
+    right.crossVectors(fwd, new T.Vector3(0, 1, 0)).normalize(); up.crossVectors(right, fwd).normalize();
+    var mid = cm;
+    var count = pts.length / 2, order = new Int32Array(N);
+    // 새떼의 일부만 글자 쪽으로 쏠리고, 나머지는 그대로 떼 지어 난다.
+    var use = Math.min(N, Math.max(Math.round(count * 1.2), Math.round(N * 0.38)));
+    for (var i = 0; i < N; i++) order[i] = i;
+    for (var s = N - 1; s > 0; s--) { var r = Math.floor(Math.random() * (s + 1)), t = order[s]; order[s] = order[r]; order[r] = t; }
+    shaped.fill(0);
+    for (var k = 0; k < use; k++) {
+      var b = order[k], p = k % count;
+      shaped[b] = 1;
+      var px = (pts[p * 2] - w / 2 + (Math.random() - .5) * step) * scale;
+      var py = -(pts[p * 2 + 1] - h / 2 + (Math.random() - .5) * step) * scale;
+      var pz = (Math.random() - .5) * 2.5;
+      target[b * 3] = mid.x + right.x * px + up.x * py + fwd.x * pz;
+      target[b * 3 + 1] = mid.y + right.y * px + up.y * py + fwd.y * pz;
+      target[b * 3 + 2] = mid.z + right.z * px + up.z * py + fwd.z * pz;
+      var dx = pos[b * 3] - target[b * 3], dy = pos[b * 3 + 1] - target[b * 3 + 1];
+      delay[b] = Math.min(1.6, Math.sqrt(dx * dx + dy * dy) / 60) + Math.random() * .5;
+    }
+    return true;
+  }
+  function send(text) {
+    text = (text || '').trim().slice(0, 8);
+    if (text && makeTargets(text)) { mode = 'form'; modeTime = 0; }
+  }
+
+  /* ---------- 움직임 ---------- */
+  var wander = new T.Vector3(), hawk = new T.Vector3(0, -999, 0), hawkVel = new T.Vector3(), nextHawk = 6, clock = 0;
+  var MIN_V = 8, MAX_V = 15, R_SEP = 3.6, R_LOOK = 5.6;
+  // 무리 전체가 함께 따르는 흐름. 새마다 따로 놀지 않고 한 덩어리로 방향을 튼다.
+  var flowX = 0, flowY = 0, flowZ = 0;
+  function step(dt) {
+    clock += dt; modeTime += dt;
+    // 무리는 화면 위쪽 넓은 하늘을 크게 덮으며 떠돈다.
+    // 멀리 갔다가 가끔 머리 위 가까이까지 쓸고 지나간다.
+    var sweep = Math.pow(Math.max(0, Math.sin(clock * 0.07 + 1.2)), 3);
+    // 카메라가 바라보는 하늘 쪽(약 85m 앞)을 중심으로 맴돈다.
+    wander.set(-30 + Math.sin(clock * 0.1) * 16 + Math.sin(clock * 0.27) * 5, 17 + Math.sin(clock * 0.15) * 4 - sweep * 3, -42 + Math.cos(clock * 0.08) * 14 + sweep * 14);
+    if (mode === 'free' && clock > nextHawk) {
+      var side = Math.random() < .5 ? -1 : 1;
+      hawk.set(wander.x - side * 55, wander.y + (Math.random() - .5) * 10, wander.z + (Math.random() - .5) * 12);
+      hawkVel.set(side * 32, (Math.random() - .5) * 4, (Math.random() - .5) * 6);
+      nextHawk = clock + 8 + Math.random() * 8;
+    }
+    hawk.addScaledVector(hawkVel, dt);
+    // 글자는 잠깐 비쳤다가 바로 풀어진다.
+    if (mode === 'form' && modeTime > 3.4) { mode = 'hold'; modeTime = 0; }
+    else if (mode === 'hold' && modeTime > 0.6) { mode = 'scatter'; modeTime = 0; scatterKick(); }
+    else if (mode === 'scatter' && modeTime > 2.2) { mode = 'free'; modeTime = 0; }
+
+    buildGrid();
+    // 무리의 평균 속도를 구해서 모두가 그쪽으로 조금씩 맞추게 한다.
+    var mvx = 0, mvy = 0, mvz = 0;
+    for (var m = 0; m < N; m++) { mvx += vel[m * 3]; mvy += vel[m * 3 + 1]; mvz += vel[m * 3 + 2]; }
+    // 무리 평균 속도에 중심 쪽 복귀를 섞어서, 함께 움직이되 멀리 날아가 버리지 않게 한다.
+    var cxm = 0, cym = 0, czm = 0;
+    for (var m2 = 0; m2 < N; m2 += 4) { cxm += pos[m2 * 3]; cym += pos[m2 * 3 + 1]; czm += pos[m2 * 3 + 2]; }
+    var nm = Math.ceil(N / 4); cxm /= nm; cym /= nm; czm /= nm;
+    flowX = mvx / N * 0.7 + (wander.x - cxm) * 0.25 + Math.sin(clock * 0.21) * 4;
+    flowY = mvy / N * 0.7 + (wander.y - cym) * 0.25 + Math.sin(clock * 0.37) * 1.5;
+    flowZ = mvz / N * 0.7 + (wander.z - czm) * 0.25 + Math.cos(clock * 0.17) * 4;
+    var shapingPhase = mode === 'form' || mode === 'hold';
+    for (var i = 0; i < N; i++) {
+      var i3 = i * 3, px = pos[i3], py = pos[i3 + 1], pz = pos[i3 + 2], vx = vel[i3], vy = vel[i3 + 1], vz = vel[i3 + 2];
+      var sx = 0, sy = 0, sz = 0, ax = 0, ay = 0, az = 0, cx = 0, cy = 0, cz = 0, n = 0;
+      var gx = Math.floor(px / CELL), gy = Math.floor(py / CELL), gz = Math.floor(pz / CELL);
+      // 찌르레기는 가까운 7마리 정도만 본다고 알려져 있다. 여기서도 이웃 수에 상한을 둔다.
+      search:
+      for (var ox = -1; ox <= 1; ox++) for (var oy = -1; oy <= 1; oy++) for (var oz = -1; oz <= 1; oz++) {
+        var h = hashCell(gx + ox, gy + oy, gz + oz);
+        for (var k = cellStart[h], e = cellStart[h + 1]; k < e; k++) {
+          var j = sorted[k]; if (j === i) continue;
+          var j3 = j * 3, dx = pos[j3] - px, dy = pos[j3 + 1] - py, dz = pos[j3 + 2] - pz, d2 = dx * dx + dy * dy + dz * dz;
+          if (d2 > R_LOOK * R_LOOK) continue;
+          if (d2 < R_SEP * R_SEP) { var inv = 7 / (d2 + .4); sx -= dx * inv; sy -= dy * inv; sz -= dz * inv; }
+          ax += vel[j3]; ay += vel[j3 + 1]; az += vel[j3 + 2];
+          cx += dx; cy += dy; cz += dz;
+          if (++n >= 9) break search;
+        }
+      }
+      var fx = 0, fy = 0, fz = 0;
+      if (n) {
+        fx += sx * 2.2 + (ax / n - vx) * 2.6 + (cx / n) * 0.5;
+        fy += sy * 2.2 + (ay / n - vy) * 2.6 + (cy / n) * 0.5;
+        fz += sz * 2.2 + (az / n - vz) * 2.6 + (cz / n) * 0.5;
+      }
+      var shaping = shapingPhase && shaped[i];
+      if (shaping) {
+        var k01 = Math.min(1, Math.max(0, (mode === 'hold' ? 9 : modeTime - delay[i]) / 1.1));
+        var tx = target[i3], ty = target[i3 + 1], tz = target[i3 + 2];
+        // 글자를 꽉 채우지 않고 늘 조금씩 흐트러져 있게 한다.
+        var ph = clock * 2.4 + phase[i] * 6.283, wob = mode === 'hold' ? .9 : .7;
+        tx += Math.cos(ph) * wob; ty += Math.sin(ph * 1.3) * wob * .7; tz += Math.sin(ph) * wob;
+        var ddx = tx - px, ddy = ty - py, ddz = tz - pz, dist = Math.sqrt(ddx * ddx + ddy * ddy + ddz * ddz) + 1e-4;
+        var want = Math.min(24, dist * 1.8), soft = 1 - k01 * 0.65;
+        fx = fx * soft + (ddx / dist * want - vx) * 3 * k01;
+        fy = fy * soft + (ddy / dist * want - vy) * 3 * k01;
+        fz = fz * soft + (ddz / dist * want - vz) * 3 * k01;
+      } else {
+        var wx2 = wander.x - px, wy2 = wander.y - py, wz2 = wander.z - pz, wd = Math.sqrt(wx2 * wx2 + wy2 * wy2 * 0.9 + wz2 * wz2 * 0.8) + 1e-4;
+        var pull = Math.max(0, wd - 26) * 0.3;
+        fx += wx2 / wd * pull; fy += wy2 / wd * pull * 1.3; fz += wz2 / wd * pull;
+        // 무리 안에 느린 소용돌이를 넣어 덩어리가 접혔다 펴지게 한다.
+        // 소용돌이와 위아래 물결을 섞어 무리가 납작한 띠로 굳지 않게 한다.
+        var sw = Math.sin(clock * 0.45 + py * 0.07) * 1.8;
+        fx += -wz2 / wd * sw; fz += wx2 / wd * sw;
+        // 무리 전체의 흐름에 맞춘다 (같이 방향을 튼다).
+        fx += (flowX - vx) * 1.1; fy += (flowY - vy) * 1.1; fz += (flowZ - vz) * 1.1;
+        fy += Math.sin(clock * 0.65 + px * 0.012) * 1.2;
+        var hx = px - hawk.x, hy = py - hawk.y, hz = pz - hawk.z, hd2 = hx * hx + hy * hy + hz * hz;
+        if (hd2 < 160) { var hk = (160 - hd2) / 160 * 26 / (Math.sqrt(hd2) + .5); fx += hx * hk; fy += hy * hk; fz += hz * hk; }
+        // 화면 안 공간을 벗어나면 부드럽게 되돌린다.
+        var bx = px - wander.x;
+        if (bx > 42) fx -= (bx - 42) * 1.5; else if (bx < -42) fx -= (bx + 42) * 1.5;
+        // 가까이 올수록 천장을 낮춰서 화면 위로 빠져나가지 않게 한다.
+        var ceil = 5 + Math.max(0, 40 - pz) * 0.4;
+        if (py < 3.5) fy += (3.5 - py) * 3; else if (py > ceil) fy -= (py - ceil) * 2;
+        if (pz < -125) fz += (-125 - pz) * 1.5; else if (pz > -10) fz -= (pz + 10) * 2;
+      }
+      // 카메라에서 45m 안으로는 들어오지 않는다.
+      var kx = px - camera.position.x, ky = py - camera.position.y, kz = pz - camera.position.z, kd = Math.sqrt(kx * kx + ky * ky + kz * kz) + 1e-4;
+      if (kd < 45) { var kp = (45 - kd) * 3; fx += kx / kd * kp; fy += ky / kd * kp; fz += kz / kd * kp; }
+      vx += fx * dt; vy += fy * dt; vz += fz * dt;
+      var sp = Math.sqrt(vx * vx + vy * vy + vz * vz) + 1e-4;
+      var lo = shaping ? 1.5 : MIN_V, hi = shaping ? 26 : (mode === 'scatter' ? 22 : MAX_V);
+      if (sp > hi) { vx *= hi / sp; vy *= hi / sp; vz *= hi / sp; } else if (sp < lo) { vx *= lo / sp; vy *= lo / sp; vz *= lo / sp; }
+      vel[i3] = vx; vel[i3 + 1] = vy; vel[i3 + 2] = vz;
+      pos[i3] = px + vx * dt; pos[i3 + 1] = py + vy * dt; pos[i3 + 2] = pz + vz * dt;
+    }
+    posAttr.needsUpdate = true; velAttr.needsUpdate = true;
+  }
+  function scatterKick() {
+    var mx = 0, my = 0, mz = 0, m = 0;
+    for (var i = 0; i < N; i++) if (shaped[i]) { mx += pos[i * 3]; my += pos[i * 3 + 1]; mz += pos[i * 3 + 2]; m++; }
+    if (!m) return;
+    mx /= m; my /= m; mz /= m;
+    for (var j = 0; j < N; j++) {
+      if (!shaped[j]) continue;
+      var j3 = j * 3, dx = pos[j3] - mx + (Math.random() - .5) * 6, dy = pos[j3 + 1] - my + 3, dz = pos[j3 + 2] - mz + (Math.random() - .5) * 6;
+      var d = Math.sqrt(dx * dx + dy * dy + dz * dz) + 1e-4, kick = 8 + Math.random() * 10;
+      vel[j3] += dx / d * kick + 4; vel[j3 + 1] += dy / d * kick * .6; vel[j3 + 2] += dz / d * kick;
+    }
+  }
+
+  function resize() {
+    renderer.setSize(innerWidth, innerHeight, false);
+    camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  }
+  addEventListener('resize', resize); resize();
+
+  /* ---------- 보낸 말 저장 ----------
+     words/<내 id>  : 말 내용만. 누구나 읽어서 새들이 띄운다.
+     inbox/<내 id>  : 이름 + 말 + 시각. 소유자(와 편집자)만 읽는다. */
+  var pool = [], queue = [], db = null, me = null, nextShow = 14;
+  // 공용 저장소가 없는 곳(로그인 안 함, 게임센터)에서는 이 기기에만 남긴다.
+  var LOCAL_KEY = 'words_local';
+  function localRows() { try { return JSON.parse(localStorage.getItem(LOCAL_KEY)) || []; } catch (e) { return []; } }
+  function saveLocal(row) { try { var r = localRows(); r.push(row); localStorage.setItem(LOCAL_KEY, JSON.stringify(r.slice(-200))); } catch (e) { /* 저장 불가 */ } }
+  pool = localRows().map(function (r) { return r.msg; });
+  function hint(text) {
+    $('hintText').textContent = text; $('hint').hidden = false;
+    clearTimeout(window.__hintTimer);
+    window.__hintTimer = setTimeout(function () { $('hint').hidden = true; }, 4200);
+  }
+  function fmt(at) { var d = new Date(at); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  (async function connect() {
+    if (!window.claude || !window.claude.use) return;
+    try { db = await window.claude.use('db'); } catch (e) { db = null; }
+    var user = null;
+    try { user = await window.claude.use('user'); } catch (e) { user = null; }
+    if (user) { try { me = await user.id(); } catch (e) { me = null; } }
+    if (!db) return;
+    db.collection('words').limit(500).onSnapshot(function (snap) {
+      var all = [];
+      snap.docs.forEach(function (d) { var b = d.data(); if (b && Array.isArray(b.msgs)) all = all.concat(b.msgs); });
+      pool = all.concat(localRows().map(function (r) { return r.msg; })).filter(function (m) { return typeof m === 'string' && m.trim(); });
+    }, function () {});
+    if (user && user.isOwner && user.isOwner()) {
+      $('inboxBtn').hidden = false;
+      $('inboxBtn').addEventListener('click', function () { $('inbox').hidden = !$('inbox').hidden; });
+      db.collection('inbox').limit(500).onSnapshot(function (snap) {
+        var rows = [];
+        snap.docs.forEach(function (d) { var b = d.data(); if (b && Array.isArray(b.entries)) rows = rows.concat(b.entries); });
+        rows.sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
+        var list = $('inboxList'); list.textContent = '';
+        if (!rows.length) { var li = document.createElement('li'); li.textContent = '아직 받은 말이 없어요.'; list.appendChild(li); }
+        rows.forEach(function (r) {
+          var li = document.createElement('li'), b = document.createElement('b'), s = document.createElement('small');
+          b.textContent = r.name || '익명'; li.appendChild(b); li.appendChild(document.createTextNode(r.msg || ''));
+          s.textContent = fmt(r.at || 0); li.appendChild(s); list.appendChild(li);
+        });
+      }, function () {});
+    }
+  })();
+  var saving = false;
+  $('form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var who = $('who').value.trim().slice(0, 12) || '익명';
+    var msg = $('word').value.trim().slice(0, 8);
+    if (!msg) { $('word').focus(); return; }
+    if (saving) return;
+    queue.unshift(msg);                 // 다음 차례에 새들이 띄운다
+    nextShow = Math.min(nextShow, 6);
+    $('word').value = ''; $('word').blur();
+    if (!db || !me) { saveLocal({ name: who, msg: msg, at: Date.now() }); pool.push(msg); hint('남겼어요. 새들이 가끔 이 말을 띄울 거예요. (이 기기에만 저장돼요)'); return; }
+    saving = true;
+    try {
+      var now = Date.now();
+      var wref = db.doc('words/' + me), iref = db.doc('inbox/' + me);
+      var w = await wref.get(), wm = (w.exists && Array.isArray(w.data().msgs)) ? w.data().msgs.slice(-29) : [];
+      wm.push(msg);
+      await wref.set({ msgs: wm });
+      var ib = await iref.get(), ie = (ib.exists && Array.isArray(ib.data().entries)) ? ib.data().entries.slice(-99) : [];
+      ie.push({ name: who, msg: msg, at: now });
+      await iref.set({ entries: ie });
+      hint('보냈어요. 새들이 가끔 이 말을 띄울 거예요.');
+    } catch (err) {
+      hint(err && err.code === 'quota_exceeded' ? '저장 공간이 꽉 찼어요. 이 화면에서만 띄울게요.' : '저장하지 못했어요. 이 화면에서만 띄울게요.');
+    }
+    saving = false;
+  });
+  /* ---------- 소리 (음악 없이 합성한 효과음) ----------
+     바람, 갈대 쓸리는 소리, 새떼 날갯짓(가까울수록 크게), 가끔 먼 새 울음, 글자가 모일 때 쓸리는 소리 */
+  var snd = null;
+  function makeNoise(ac, sec) {
+    var b = ac.createBuffer(1, ac.sampleRate * sec, ac.sampleRate), d = b.getChannelData(0), last = 0;
+    for (var i = 0; i < d.length; i++) { var w = Math.random() * 2 - 1; last = (last + 0.02 * w) / 1.02; d[i] = i % 3 ? w * 0.5 : last * 3.5; }
+    return b;
+  }
+  function loop(ac, buf, filterType, freq, q, gain, dest) {
+    var s = ac.createBufferSource(); s.buffer = buf; s.loop = true;
+    var f = ac.createBiquadFilter(); f.type = filterType; f.frequency.value = freq; f.Q.value = q;
+    var g = ac.createGain(); g.gain.value = gain;
+    s.connect(f); f.connect(g); g.connect(dest); s.start(0, Math.random() * 3);
+    return { f: f, g: g };
+  }
+  function startSound() {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    var ac; try { ac = new AC(); } catch (e) { return null; }
+    var master = ac.createGain(); master.gain.value = 0.9; master.connect(ac.destination);
+    var buf = makeNoise(ac, 4);
+    return {
+      ac: ac, master: master, buf: buf,
+      wind: loop(ac, buf, 'lowpass', 380, 0.4, 0.18, master),
+      reeds: loop(ac, buf, 'bandpass', 3200, 0.7, 0.03, master),
+      wings: loop(ac, buf, 'bandpass', 900, 0.9, 0.0, master),
+      nextChirp: 2
+    };
+  }
+  function chirp() {
+    var ac = snd.ac, t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain(), p = ac.createStereoPanner ? ac.createStereoPanner() : null;
+    var f0 = 2600 + Math.random() * 1600;
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f0 * (Math.random() < .5 ? 1.4 : 0.7), t + 0.08);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.012 + Math.random() * 0.01, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    o.connect(g);
+    if (p) { p.pan.value = Math.random() * 1.6 - 0.8; g.connect(p); p.connect(snd.master); } else g.connect(snd.master);
+    o.start(t); o.stop(t + 0.14);
+  }
+  function swoosh() {
+    if (!snd) return;
+    var ac = snd.ac, t = ac.currentTime, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = snd.buf; f.type = 'bandpass'; f.Q.value = 1.2;
+    f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(1600, t + 2.2);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 1.6); g.gain.exponentialRampToValueAtTime(0.0001, t + 3.6);
+    s.connect(f); f.connect(g); g.connect(snd.master); s.start(t, Math.random() * 2); s.stop(t + 3.7);
+  }
+  function updateSound(dt) {
+    if (!snd) return;
+    var ac = snd.ac, t = ac.currentTime;
+    var gust = Math.sin(simTime * 0.5) * 0.5 + 0.5;
+    snd.wind.g.gain.setTargetAtTime(0.12 + gust * 0.12, t, 0.5);
+    snd.wind.f.frequency.setTargetAtTime(280 + gust * 260, t, 0.5);
+    snd.reeds.g.gain.setTargetAtTime(0.015 + gust * 0.05, t, 0.4);
+    // 새떼 중심까지 거리 (일부만 표본으로)
+    var sx = 0, sy = 0, sz = 0, k = 0;
+    for (var i = 0; i < N; i += 37) { sx += pos[i * 3]; sy += pos[i * 3 + 1]; sz += pos[i * 3 + 2]; k++; }
+    var dx = sx / k - camera.position.x, dy = sy / k - camera.position.y, dz = sz / k - camera.position.z;
+    var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    var near = Math.max(0, Math.min(1, (150 - dist) / 100));
+    var flutter = 0.75 + 0.25 * Math.sin(simTime * 23) * Math.sin(simTime * 7.3);
+    snd.wings.g.gain.setTargetAtTime(near * near * 0.16 * flutter, t, 0.15);
+    snd.wings.f.frequency.setTargetAtTime(700 + near * 900, t, 0.3);
+    snd.nextChirp -= dt;
+    if (snd.nextChirp <= 0) {
+      var burst = 1 + Math.floor(Math.random() * 4);
+      for (var c = 0; c < burst; c++) setTimeout(function () { if (snd) chirp(); }, c * (60 + Math.random() * 120));
+      snd.nextChirp = 0.6 + Math.random() * 3 * (1.2 - near);
+    }
+  }
+  $('soundBtn').addEventListener('click', function () {
+    if (!snd) { snd = startSound(); if (!snd) { $('soundBtn').textContent = '소리 없음'; return; } }
+    var on = $('soundBtn').getAttribute('aria-pressed') !== 'true';
+    if (on) snd.ac.resume(); else snd.ac.suspend();
+    $('soundBtn').setAttribute('aria-pressed', on);
+    $('soundBtn').textContent = on ? '소리 끄기' : '소리 켜기';
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!snd) return;
+    if (document.hidden) snd.ac.suspend(); else if ($('soundBtn').getAttribute('aria-pressed') === 'true') snd.ac.resume();
+  });
+
+  // 가끔, 쌓인 말 중 하나를 새들이 은근히 띄운다.
+  function tickMessages(dt) {
+    if (mode !== 'free') return;
+    nextShow -= dt;
+    if (nextShow > 0) return;
+    var text = queue.length ? queue.shift() : (pool.length ? pool[Math.floor(Math.random() * pool.length)] : null);
+    nextShow = 28 + Math.random() * 26;
+    if (text) { send(text); swoosh(); }
+  }
+
+  /* ---------- 루프 ---------- */
+  var last = performance.now(), demo = 4, simTime = 0;
+  function draw() {
+    birdU.time.value = simTime; reedU.time.value = simTime;
+    for (var i = 0; i < mists.length; i++) mists[i].material.map.offset.x = simTime * mists[i].userData.speed;
+    if (!calm) sway(simTime);
+    renderer.render(scene3, camera);
+  }
+  function frame(now) {
+    requestAnimationFrame(frame);
+    var dt = Math.min(0.033, (now - last) / 1000); last = now;
+    if (calm) dt *= 0.5;
+    simTime += dt;
+    step(dt);
+    tickMessages(dt);
+    updateSound(dt);
+    draw();
+  }
+  requestAnimationFrame(frame);
+  window.__flock = { send: send, mode: function () { return mode; },
+    onScreen: function () { var v = new T.Vector3(), k = 0; for (var i = 0; i < N; i++) { v.set(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]).project(camera); if (Math.abs(v.x) < 1 && Math.abs(v.y) < 1 && v.z < 1) k++; } return k / N; },
+    bench: function (frames) { var t = performance.now(); for (var f = 0; f < frames; f++) { simTime += 1 / 60; step(1 / 60); } var s = (performance.now() - t) / frames; t = performance.now(); draw(); renderer.getContext().finish(); return { stepMs: s, renderMs: performance.now() - t, birds: N }; } };
+})();
+</script>
+
+</body>
+</html>

@@ -8,6 +8,7 @@ export const DEFAULT = {
 };
 
 const TAU = Math.PI * 2;
+let ENERGY = 1; // 움직임이 격할수록 촉수가 크게 휘날린다
 function rng(seed) { let s = (seed >>> 0) || 1; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 const hsl = (h, s, l, a = 1) => `hsla(${((h % 360) + 360) % 360},${s}%,${l}%,${a})`;
 
@@ -24,7 +25,7 @@ function shape(p, R, t) {
   const g = { rim: [], eye: [0, -10], front: [0, -60], back: [0, 60], top: [0, -60], bottom: [0, 60], center: [0, 0], down: Math.PI / 2 };
   switch (p.body) {
     case 'jelly': {
-      const pts = [], pulse = 1 + Math.sin(t * 2.2) * 0.05;
+      const pts = [], pulse = 1 + Math.sin(t * 2.6) * 0.12;
       for (let i = 0; i <= 24; i++) { const a = Math.PI + Math.PI * i / 24; pts.push([Math.cos(a) * 72 * pulse, -18 + Math.sin(a) * 62]); }
       for (let i = 24; i >= 0; i--) { const x = -72 * pulse + 144 * pulse * i / 24; pts.push([x * 0.98, -14 + Math.sin(i * 1.3) * 4]); }
       g.outline = pts.reverse();
@@ -162,7 +163,7 @@ function strand(ctx, x, y, ang, len, w, t, ph, sway, color, tips, curl = 0) {
   const seg = 14, pts = [[x, y]];
   let a = ang, cx = x, cy = y;
   for (let i = 1; i <= seg; i++) {
-    a += Math.sin(t * 1.6 + ph + i * 0.45) * sway * 0.12 + curl * (i / seg) * 0.5;
+    a += Math.sin(t * (1.6 + ENERGY * 0.6) + ph + i * 0.45) * sway * 0.12 * ENERGY + curl * (i / seg) * 0.5;
     cx += Math.cos(a) * len / seg; cy += Math.sin(a) * len / seg;
     pts.push([cx, cy]);
   }
@@ -192,15 +193,47 @@ export function drawCreature(ctx, p0, t, W, H, opts = {}) {
   ctx.translate(W / 2, H / 2);
   const S = Math.min(W, H) / 300 * (0.72 + (p.size - 0.55) * 0.55) * (opts.zoom || 1);
   ctx.scale(S, S);
-  // 움직임
-  switch (p.move) {
-    case 'float': ctx.translate(Math.sin(t * 0.7) * 6, Math.sin(t * 1.1) * 8); break;
-    case 'wiggle': ctx.rotate(Math.sin(t * 2.3) * 0.08); break;
-    case 'spin': ctx.rotate(t * 0.5); break;
-    case 'hop': ctx.translate(0, -Math.abs(Math.sin(t * 2)) * 18 + 8); break;
-    case 'glide': ctx.translate(Math.sin(t * 0.5) * 22, 0); ctx.rotate(Math.sin(t * 0.5) * 0.05); break;
-    case 'upside': ctx.rotate(Math.PI + Math.sin(t) * 0.06); break;
-    case 'blink': ctx.translate(0, Math.sin(t * 0.8) * 4); break;
+  // 움직임: 특성마다 화면 안을 다르게 누빈다.
+  ENERGY = 1;
+  if (!opts.still) switch (p.move) {
+    case 'float': {
+      ctx.translate(Math.sin(t * 0.35) * 60, Math.sin(t * 0.5) * 30 + Math.sin(t * 1.7) * 6);
+      ctx.rotate(Math.sin(t * 0.4) * 0.14); ENERGY = 1.3; break;
+    }
+    case 'wiggle': {
+      ctx.translate(Math.sin(t * 0.6) * 55, Math.sin(t * 0.9) * 22);
+      ctx.rotate(Math.sin(t * 3.4) * 0.2); ctx.scale(1 + Math.sin(t * 6.8) * 0.06, 1 - Math.sin(t * 6.8) * 0.06); ENERGY = 2.2; break;
+    }
+    case 'spin': {
+      ctx.translate(Math.cos(t * 0.7) * 45, Math.sin(t * 0.7) * 25);
+      ctx.rotate(t * 1.6 + Math.sin(t * 3) * 0.3); ENERGY = 1.8; break;
+    }
+    case 'hop': {
+      // 짧게 분사해서 확 솟았다가 천천히 가라앉는다
+      const ph = (t * 0.75) % 1, burst = ph < 0.18 ? ph / 0.18 : 1, sink = ph < 0.18 ? 0 : (ph - 0.18) / 0.82;
+      const k = 1 - Math.pow(1 - burst, 3);
+      ctx.translate(Math.sin(t * 0.3) * 50, 60 - k * 110 + sink * 110 * 0.92);
+      const sq = ph < 0.18 ? 1 - Math.sin(ph / 0.18 * Math.PI) * 0.22 : 1;
+      ctx.scale(2 - sq, sq); ENERGY = ph < 0.25 ? 3 : 1.1; break;
+    }
+    case 'glide': {
+      const heading = Math.cos(t * 0.28);
+      ctx.translate(Math.sin(t * 0.28) * 110, Math.sin(t * 0.56) * 18); ctx.rotate(heading * 0.28); ctx.scale(heading < 0 ? -1 : 1, 1); ENERGY = 1.1; break;
+    }
+    case 'blink': {
+      // 한 자리에서 멈췄다가 다음 자리로 훅 이동한다
+      const n = Math.floor(t / 1.4), f = (t / 1.4) % 1, e = f < 0.25 ? 1 - Math.pow(1 - f / 0.25, 3) : 1;
+      const pr = rng(p.seed + n), nx = rng(p.seed + n + 1);
+      const ax = (pr() - 0.5) * 160, ay = (pr() - 0.5) * 90, bx = (nx() - 0.5) * 160, by = (nx() - 0.5) * 90;
+      ctx.translate(ax + (bx - ax) * e, ay + (by - ay) * e); ENERGY = f < 0.25 ? 2.6 : 0.6; break;
+    }
+    case 'upside': {
+      ctx.translate(Math.sin(t * 0.4) * 40, -50 + ((t * 18) % 120)); ctx.rotate(Math.PI + Math.sin(t * 0.6) * 0.35); ENERGY = 1.4; break;
+    }
+    case 'still': {
+      const tw = (t % 3.2) < 0.18 ? Math.sin(t * 80) * 4 : 0; // 가끔 움찔
+      ctx.translate(tw, Math.sin(t * 0.3) * 3); ENERGY = (t % 3.2) < 0.18 ? 2 : 0.25; break;
+    }
     default: break;
   }
   const g = shape(p, R, t);

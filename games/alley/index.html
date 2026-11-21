@@ -3,28 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>골목 뒤통수 · 배기원의 게임센터</title>
+<title>흡연충 뻑치기 · 배기원의 게임센터</title>
 <link rel="stylesheet" href="../../css/base.css">
 <style>
   [hidden] { display: none !important; }
   html, body { height: 100%; }
   body { max-width: none; margin: 0; padding: 0; overflow: hidden; background: #0b0d14; touch-action: none; -webkit-user-select: none; user-select: none; }
   #view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
-  .panel { position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: min(400px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow-y: auto; background: #fff; color: #111; border: 2px solid #111; padding: 16px; display: grid; gap: 10px; }
-  .panel h1 { margin: 0; font-size: 24px; }
-  .panel p { margin: 0; line-height: 1.5; }
+  .panel { position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100% - 32px)); background: #fff; color: #111; border: 2px solid #111; padding: 16px; display: grid; gap: 12px; }
+  .panel h1 { margin: 0; font-size: 26px; letter-spacing: -0.5px; }
+  .panel p { margin: 0; font-size: 14px; color: #555; }
   .panel dl { margin: 0; display: grid; grid-template-columns: auto 1fr; border-top: 1px solid #111; }
-  .panel dt, .panel dd { margin: 0; padding: 5px 0; border-bottom: 1px solid #111; font-size: 14px; }
-  .panel dt { padding-right: 14px; font-weight: 700; }
-  .panel .who li { font-size: 14px; }
-  .panel .who { margin: 0; padding-left: 18px; }
+  .panel dt, .panel dd { margin: 0; padding: 5px 0; border-bottom: 1px solid #111; font-size: 15px; }
+  .panel dt { padding-right: 14px; color: #555; }
+  .panel dd { text-align: right; font-family: var(--mono); font-weight: 700; }
   .panel button { padding: 10px; font-size: 17px; font-weight: 700; }
   .panel .row { display: flex; gap: 8px; }
   .panel .row button { flex: 1; }
-  #hud { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); background: #fff; color: #111; border: 2px solid #111; padding: 6px 10px; font: 600 14px/1.4 var(--mono); }
-  #toast { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); background: #fff; color: #111; border: 2px solid #111; padding: 6px 12px; font-weight: 700; pointer-events: none; transition: opacity .3s; opacity: 0; white-space: nowrap; }
-  #prompt { position: fixed; left: 50%; bottom: calc(24% + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: #111; color: #fff; padding: 6px 12px; font-weight: 700; pointer-events: none; }
-  #cross { position: fixed; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border: 2px solid #fff; border-radius: 50%; mix-blend-mode: difference; pointer-events: none; }
+  #hud { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); color: #fff; font: 700 16px/1.2 var(--mono); text-shadow: 0 1px 2px #000; pointer-events: none; }
+  #stamBar { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); width: 120px; height: 4px; margin-left: -60px; background: rgba(255,255,255,.2); pointer-events: none; }
+  #stam { height: 100%; background: #fff; transform-origin: left; }
+  #cross { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: #fff; mix-blend-mode: difference; pointer-events: none; }
   #snd { position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); font-size: 13px; }
   #snd[aria-pressed="true"] { background: #111; color: #fff; }
   #stick { position: fixed; left: max(24px, env(safe-area-inset-left, 0px)); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); width: 110px; height: 110px; border: 2px solid #fff; border-radius: 50%; background: rgba(255,255,255,.12); pointer-events: none; }
@@ -38,39 +37,24 @@
 <body>
 <canvas id="view"></canvas>
 <div id="hud" hidden></div>
+<div id="stamBar" hidden><div id="stam"></div></div>
 <div id="cross" hidden></div>
-<div id="toast"></div>
-<div id="prompt" hidden></div>
 <button id="snd" type="button" aria-pressed="false">소리 켜기</button>
 <div id="stick" hidden><div id="nub"></div></div>
 <button id="runBtn" class="tbtn" type="button" hidden aria-pressed="false">달리기</button>
-<button id="hitBtn" class="tbtn" type="button" hidden>치기</button>
+<button id="hitBtn" class="tbtn" type="button" hidden>뻑</button>
 
 <section class="panel" id="startPanel">
-  <h1>골목 뒤통수</h1>
-  <p>역에서 학원까지, 담배 연기 자욱한 골목을 지나가야 합니다. 담배 피우는 사람들 뒤통수를 치고 도망쳐서 학원 정문으로 들어가세요.</p>
-  <ul class="who">
-    <li><b>회사원</b> 통화하느라 주변을 안 봐요.</li>
-    <li><b>대학생</b> 무리 지어 있어서 하나를 치면 다 돌아봐요.</li>
-    <li><b>재수생</b> 들킬까 봐 계속 두리번거려요.</li>
-    <li><b>할아버지</b> 맞으면 호통을 쳐서 골목 사람들이 다 돌아봐요.</li>
-    <li><b>문신 멸치</b> 반응이 제일 빨라요.</li>
-    <li><b>문신 돼지</b> 두 대를 쳐야 쓰러져요.</li>
-    <li><b>헬스장 관장님</b> 학원 앞 편의점에 있어요. 세 대, 그리고 엄청 빨라요.</li>
-  </ul>
-  <dl>
-    <dt>PC</dt><dd>WASD 이동, 마우스 시선, Shift 달리기, Space·클릭 치기</dd>
-    <dt>휴대폰</dt><dd>왼쪽 원 이동, 오른쪽 밀어서 시선, 버튼으로 치기·달리기</dd>
-  </dl>
-  <p class="dim">앞에서 치거나 쫓아온 사람한테 잡히면 목숨이 하나 줄어요. 목숨은 3개예요.</p>
-  <button id="go" type="button">골목으로 들어가기</button>
+  <h1>흡연충 뻑치기</h1>
+  <p>WASD 이동 · Shift 달리기 · 좌클릭 뻑</p>
+  <button id="go" type="button">시작</button>
 </section>
 
 <section class="panel" id="endPanel" hidden>
   <h1 id="endTitle"></h1>
   <dl id="endStats"></dl>
   <p id="endMsg"></p>
-  <div class="row"><button id="again" type="button">다시 하기</button><button id="home" type="button">게임 목록</button></div>
+  <div class="row"><button id="again" type="button">다시</button><button id="home" type="button">게임 목록</button></div>
 </section>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

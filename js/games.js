@@ -1,6 +1,7 @@
 // 게임 목록. 여기만 고치면 메인/랭킹에 다 반영됨.
 // order: 'desc' = 점수 높을수록 좋음, 'asc' = 낮을수록 좋음 (시간 같은 거)
 // min/max: 이 범위 밖 점수는 등록 안 받음
+// noRank: true면 랭킹 탭에 안 나옴 (점수 없는 페이지)
 // color/badge: 썸네일 이미지 생기기 전까지 쓰는 색 블록
 export const GAMES = [
   {
@@ -16,18 +17,6 @@ export const GAMES = [
     badge: 'REACTION',
   },
   {
-    id: 'japan',
-    title: '배기원 일본 취업 성공시키기',
-    desc: '하루 단어 40개 외우면서 밥, 잠, 멘탈, 돈까지 챙기기. D-11.',
-    url: 'games/japan/',
-    order: 'desc',
-    unit: '점',
-    min: 0,
-    max: 99999,
-    color: '#5b7bd5',
-    badge: 'JAPAN',
-  },
-  {
     id: 'deepsea',
     title: '심해 생물 만들기',
     desc: '질문에 답할수록 생물이 자라나요. 성격까지 정해지는 나만의 심해 생물 도감.',
@@ -41,8 +30,8 @@ export const GAMES = [
   },
   {
     id: 'alley',
-    title: '골목 뒤통수',
-    desc: '역에서 학원까지, 흡연자 뒤통수를 치고 도망치는 1인칭 골목 질주.',
+    title: '흡연충 뻑치기',
+    desc: '명학역 1번 출구에서 에스키스까지, 만안로 1인칭.',
     url: 'games/alley/',
     order: 'desc',
     unit: '점',
@@ -52,28 +41,17 @@ export const GAMES = [
     badge: 'ALLEY',
   },
   {
-    id: 'popo',
-    title: '포포 키우기',
-    desc: '하늘다람쥐에게 30일 동안 무엇을 가르칠까요?',
-    url: null,
+    id: 'words',
+    title: '하고 싶은 말',
+    desc: '안개 낀 갈대밭 위 찌르레기 떼에게 말을 남기면, 새들이 가끔 그 말을 하늘에 띄워요.',
+    url: 'games/words/',
+    noRank: true,
     order: 'desc',
-    unit: '점',
+    unit: '',
     min: 0,
-    max: 999,
-    color: '#845ef7',
-    badge: 'POPO',
-  },
-  {
-    id: 'velvet',
-    title: 'VELVET HOUR',
-    desc: '네온 클럽을 정리하는 1인칭 슈팅',
-    url: null,
-    order: 'desc',
-    unit: '점',
-    min: 0,
-    max: 999999,
-    color: '#f03e6e',
-    badge: 'VELVET',
+    max: 0,
+    color: '#c4ccd3',
+    badge: 'WORDS',
   },
 ];
 
