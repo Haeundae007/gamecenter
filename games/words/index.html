@@ -707,6 +707,8 @@ body{margin:0}
   }
   ['pointerdown', 'keydown', 'touchstart'].forEach(function (n) { addEventListener(n, firstTouch, true); });
   $('soundBtn').addEventListener('click', function () {
+    // 켜져 있는데 브라우저가 막아서 안 들리던 거라면, 이 클릭은 끄기가 아니라 "들리게"로 쓴다.
+    if (soundOn && snd && snd.ac.state !== 'running') { snd.ac.resume().catch(function () {}); return; }
     soundOn = !soundOn;
     try { localStorage.setItem('words_sound', soundOn ? 'on' : 'off'); } catch (e) {}
     applySound();

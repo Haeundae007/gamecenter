@@ -2,8 +2,8 @@
 // 길과 일부 건물은 OpenStreetMap 데이터(map.js)를 쓴다.
 // 화면에 글로 상황을 설명하지 않는다. 생김새·동작·소리·화면 효과로만 보여 준다.
 // 가벼움: 움직이지 않는 물체는 재질별로 한 덩어리로 합쳐서 그리고, 진짜 조명은 플레이어 근처 몇 개만 켠다.
-import { submitScore } from '../../js/gc.js?v=3';
-import { ROUTE, BUILDINGS } from './map.js?v=3';
+import { submitScore } from '../../js/gc.js?v=4';
+import { ROUTE, BUILDINGS } from './map.js?v=4';
 
 const $ = id => document.getElementById(id);
 const T = window.THREE;
@@ -605,8 +605,10 @@ document.addEventListener('contextmenu', e => { if (playing) e.preventDefault();
 $('hitBtn').addEventListener('pointerdown', e => { e.preventDefault(); hit(); });
 $('runBtn').addEventListener('pointerdown', e => { e.preventDefault(); runBtn = !runBtn; $('runBtn').setAttribute('aria-pressed', runBtn); });
 
-/* ---------- 효과음 (기본은 꺼짐) ---------- */
-let ac = null, soundOn = false, noiseBuf = null, railGain = null;
+/* ---------- 효과음 (기본은 켜짐, 끈 사람은 다음에도 꺼짐) ---------- */
+let soundOn = true;
+try { soundOn = localStorage.getItem('alley_sound') !== 'off'; } catch { /* 저장 못 해도 켜짐 */ }
+let ac = null, noiseBuf = null, railGain = null;
 function audioInit() {
   if (ac) return ac;
   const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
@@ -653,11 +655,26 @@ const sfx = {
   turn: () => nz('bandpass', 1400, 2, 0.05, 0.08),
   win: () => { tone(660, 0.25, 'triangle', 0.12); tone(990, 0.4, 'triangle', 0.12, 990, 0.18); },
 };
-$('snd').addEventListener('click', () => {
-  if (!audioInit()) { $('snd').textContent = '소리 없음'; return; }
-  soundOn = !soundOn; if (soundOn) ac.resume(); else ac.suspend();
+function applySound() {
   $('snd').setAttribute('aria-pressed', soundOn); $('snd').textContent = soundOn ? '소리 끄기' : '소리 켜기';
+  if (!soundOn) { if (ac) ac.suspend(); return; }
+  if (!audioInit()) { $('snd').textContent = '소리 없음'; return; }
+  if (!document.hidden) ac.resume().catch(() => {});
+}
+// 브라우저는 첫 클릭·키 입력 전엔 소리를 막는다. 막혀 있으면 처음 건드리는 순간 바로 켠다.
+function firstTouch(e) {
+  if (e.target === $('snd')) return;
+  ['pointerdown', 'keydown', 'touchstart'].forEach(n => removeEventListener(n, firstTouch, true));
+  if (soundOn) applySound();
+}
+['pointerdown', 'keydown', 'touchstart'].forEach(n => addEventListener(n, firstTouch, true));
+$('snd').addEventListener('click', () => {
+  if (soundOn && ac && ac.state !== 'running') { ac.resume().catch(() => {}); return; }
+  soundOn = !soundOn;
+  try { localStorage.setItem('alley_sound', soundOn ? 'on' : 'off'); } catch { /* 무시 */ }
+  applySound();
 });
+applySound();
 document.addEventListener('visibilitychange', () => { if (ac) { if (document.hidden) ac.suspend(); else if (soundOn) ac.resume(); } });
 
 /* ================= 때리기 ================= */

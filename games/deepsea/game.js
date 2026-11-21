@@ -1,7 +1,7 @@
-import { submitScore, myNick } from '../../js/gc.js?v=3';
-import { mountComments } from '../../js/comments.js?v=3';
-import { PARTS, MIND, BODIES, TEMPER, NAME_FRONT, SCI_A, SCI_B } from './data.js?v=3';
-import { drawCreature, DEFAULT } from './draw.js?v=3';
+import { submitScore, myNick } from '../../js/gc.js?v=4';
+import { mountComments } from '../../js/comments.js?v=4';
+import { PARTS, MIND, BODIES, TEMPER, NAME_FRONT, SCI_A, SCI_B } from './data.js?v=4';
+import { drawCreature, DEFAULT } from './draw.js?v=4';
 
 mountComments(document.getElementById('comments'), 'deepsea');
 
@@ -110,10 +110,13 @@ function frame(now) {
 }
 
 /* ---------- 소리 ---------- */
-let ac = null, sfxOn = false, musicOn = false, music = null;
+// 음악·효과음 모두 기본으로 켜 둔다. 끈 사람은 다음에도 꺼진 채로.
+const pref = k => { try { return localStorage.getItem(k) !== 'off'; } catch { return true; } };
+const savePref = (k, on) => { try { localStorage.setItem(k, on ? 'on' : 'off'); } catch { /* 무시 */ } };
+let ac = null, sfxOn = pref('ds_sfx'), musicOn = pref('ds_bgm'), music = null;
 function audio() {
   if (!ac) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; try { ac = new AC(); } catch { return null; } }
-  if (ac.state === 'suspended') ac.resume();
+  if (ac.state === 'suspended') ac.resume().catch(() => {});
   return ac;
 }
 function blip(freq = 520, dur = 0.18, type = 'sine', vol = 0.06, slide = 1.8) {
@@ -172,17 +175,37 @@ function startMusic() {
   const timers = [setInterval(chord, 9000), setInterval(() => { if (Math.random() < 0.6) whale(); }, 14000), setInterval(ping, 11000)];
   return { stop() { out.gain.linearRampToValueAtTime(0, a.currentTime + 1.5); timers.forEach(clearInterval); setTimeout(() => { try { drone.stop(); lfo.stop(); voices.forEach(v => v.o.forEach(o => o.stop())); } catch { /* 이미 멈춤 */ } }, 1700); } };
 }
-$('bgm').addEventListener('click', () => {
-  if (!audio()) return;
-  musicOn = !musicOn;
-  if (musicOn) music = startMusic(); else if (music) { music.stop(); music = null; }
+function showSound() {
   $('bgm').setAttribute('aria-pressed', musicOn); $('bgm').textContent = musicOn ? '음악 끄기' : '음악 켜기';
+  $('snd').setAttribute('aria-pressed', sfxOn); $('snd').textContent = sfxOn ? '효과음 끄기' : '효과음 켜기';
+}
+const blocked = () => ac && ac.state !== 'running';
+function soundUp() {
+  if (!(musicOn || sfxOn) || !audio()) return;
+  if (musicOn && !music) music = startMusic();
+}
+// 브라우저는 첫 클릭·키 입력 전엔 소리를 막는다. 막혀 있으면 처음 건드리는 순간 바로 켠다.
+function firstTouch(e) {
+  if (e.target === $('bgm') || e.target === $('snd')) return;
+  ['pointerdown', 'keydown', 'touchstart'].forEach(n => removeEventListener(n, firstTouch, true));
+  soundUp();
+}
+['pointerdown', 'keydown', 'touchstart'].forEach(n => addEventListener(n, firstTouch, true));
+$('bgm').addEventListener('click', () => {
+  if (musicOn && blocked()) { soundUp(); return; }
+  if (!audio()) return;
+  musicOn = !musicOn; savePref('ds_bgm', musicOn);
+  if (musicOn) { if (!music) music = startMusic(); } else if (music) { music.stop(); music = null; }
+  showSound();
 });
 $('snd').addEventListener('click', () => {
+  if (sfxOn && blocked()) { soundUp(); return; }
   if (!audio()) return;
-  sfxOn = !sfxOn;
-  $('snd').setAttribute('aria-pressed', sfxOn); $('snd').textContent = sfxOn ? '효과음 끄기' : '효과음 켜기';
+  sfxOn = !sfxOn; savePref('ds_sfx', sfxOn);
+  showSound();
 });
+showSound();
+soundUp();
 document.addEventListener('visibilitychange', () => { if (!ac) return; if (document.hidden) ac.suspend(); else if (musicOn || sfxOn) ac.resume(); });
 
 /* ---------- 화면 ---------- */
