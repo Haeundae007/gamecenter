@@ -19,12 +19,12 @@ async function gamesPage() {
       : `<a class="btn" aria-disabled="true">준비 중</a>`;
     return `<li>
       <span class="no">${pad(i + 1)}</span>
-      <div class="info"><div class="name">${esc(g.title)}</div><div class="desc">${esc(g.desc)}</div></div>
+      <div class="info"><div class="name">${esc(g.title)}</div></div>
       <span class="best">${esc(best)}</span>
       ${play}
     </li>`;
   }).join('');
-  view.innerHTML = `<h1>게임</h1><p class="dim">기록을 등록하고 랭킹에 도전해 보세요.</p><ul class="games">${rows}</ul>`;
+  view.innerHTML = `<h1>게임</h1><ul class="games">${rows}</ul>`;
 }
 
 function tabs(active) {

@@ -239,7 +239,7 @@ export function drawCreature(ctx, p0, t, W, H, opts = {}) {
   const g = shape(p, R, t);
   const glowAll = p.glowAt === 'all' ? p.glow : 0;
   ctx.shadowColor = glowC;
-  ctx.shadowBlur = glowAll * 18 * pulse;
+  ctx.shadowBlur = 0; // 온몸 발광은 아래 발광 점으로 표현한다 (블러는 무겁다)
 
   // 줄기 (바다나리)
   if (g.stalk) {
@@ -440,7 +440,7 @@ export function drawCreature(ctx, p0, t, W, H, opts = {}) {
   // ---------- 발광 ----------
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  ctx.shadowColor = glowC; ctx.shadowBlur = 16;
+  ctx.shadowBlur = 0;
   const glowDot = (x, y, r, a) => { const gr = ctx.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, hsl(gHue, 100, 75, a)); gr.addColorStop(1, hsl(gHue, 100, 50, 0)); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); };
   if (p.glow > 0) {
     if (p.glowAt === 'tips' || p.glowAt === 'all') tips.forEach(([x, y], i) => glowDot(x, y, 7, p.glow * pulse * (0.6 + 0.4 * Math.sin(t * 4 + i))));

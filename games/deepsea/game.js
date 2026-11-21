@@ -46,7 +46,7 @@ let phase = 'intro', revealT = 0;
 /* ---------- 바다 ---------- */
 let snow = [], motes = [];
 function sizeCanvas() {
-  const dpr = Math.min(devicePixelRatio || 1, 2), r = cv.getBoundingClientRect();
+  const dpr = Math.min(devicePixelRatio || 1, 1.25), r = cv.getBoundingClientRect();
   cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
   snow = Array.from({ length: 150 }, () => ({ x: Math.random(), y: Math.random(), r: Math.random() * 1.6 + 0.3, v: Math.random() * 0.02 + 0.006, d: Math.random() }));
   motes = Array.from({ length: 9 }, () => ({ x: Math.random(), y: Math.random(), h: 170 + Math.random() * 60, ph: Math.random() * 7 }));
@@ -54,6 +54,15 @@ function sizeCanvas() {
 function seaColor(depth) {
   const k = depth ? Math.min(1, Math.log10(Math.max(200, depth) / 200) / Math.log10(55)) : 0.6;
   return [[8 + (1 - k) * 22, 18 + (1 - k) * 40, 34 + (1 - k) * 60], [2, 3, 8]];
+}
+const off = document.createElement('canvas'), offCtx = off.getContext('2d');
+function soft(res, alpha, zoom, W, H) {
+  const w = Math.max(16, Math.round(W * res)), h = Math.max(16, Math.round(H * res));
+  if (off.width !== w || off.height !== h) { off.width = w; off.height = h; }
+  offCtx.clearRect(0, 0, w, h);
+  drawCreature(offCtx, p, t, w, h, { zoom });
+  ctx.save(); ctx.globalAlpha = alpha; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(off, 0, 0, W, H); ctx.restore();
 }
 let last = performance.now(), t = 0;
 function frame(now) {
@@ -83,21 +92,15 @@ function frame(now) {
   ctx.restore();
 
   if (phase === 'forming') {
-    // 아직 정체를 모르는 희미한 형체
+    // 아직 정체를 모르는 희미한 형체: 아주 작게 그려서 늘리면 블러 필터 없이도 뿌옇다 (가볍다)
     const k = run ? stepIdx / run.length : 0;
-    ctx.save();
-    ctx.filter = `blur(${Math.round(14 - k * 8)}px) brightness(${0.35 + k * 0.25})`;
-    ctx.globalAlpha = 0.35 + k * 0.25;
-    drawCreature(ctx, p, t, W, H, { zoom: 0.95 });
-    ctx.restore();
+    soft(Math.max(0.05, 0.06 + k * 0.1), 0.3 + k * 0.3, 0.95, W, H);
   } else if (phase === 'reveal' || phase === 'result') {
     let k = 1;
     if (phase === 'reveal') { revealT += dt; k = Math.min(1, revealT / 2.4); if (k >= 1) { phase = 'result'; } }
     const e = 1 - Math.pow(1 - k, 3);
-    ctx.save();
-    if (k < 1) { ctx.filter = `blur(${Math.round((1 - e) * 10)}px)`; ctx.globalAlpha = 0.5 + e * 0.5; }
-    drawCreature(ctx, p, t, W, H, { zoom: 0.8 + e * 0.25 });
-    ctx.restore();
+    if (k < 1) soft(0.16 + e * 0.84, 0.5 + e * 0.5, 0.8 + e * 0.25, W, H);
+    else drawCreature(ctx, p, t, W, H, { zoom: 1.05 });
     if (k < 1) { // 빛이 번지며 드러난다
       const g3 = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * (0.2 + e * 0.6));
       g3.addColorStop(0, `rgba(200,235,255,${(1 - e) * 0.55})`); g3.addColorStop(1, 'rgba(0,0,0,0)');

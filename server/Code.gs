@@ -1,16 +1,24 @@
 // 배기원의 게임센터 랭킹 서버 (Google Apps Script)
-// 구글 시트에 붙여서 웹 앱으로 배포하면 됨. 순서는 README 참고.
+// 구글 시트에 붙여서 웹 앱으로 배포하면 됨. 순서는 DEPLOY.md 참고.
 // 시트 이름 'scores', 열: game | nick | score | at
+//
+// 안전장치
+// - 이 스크립트는 자기가 붙은 시트 하나만 읽고 쓴다. 다른 구글 데이터는 건드리지 않는다.
+// - 시트에 쓰는 글자는 수식으로 실행되지 않게 막는다 (= + - @ 로 시작 금지).
+// - 점수는 게임마다 실제로 나올 수 있는 범위만 받는다.
+// - 닉네임별 5초, 서버 전체 분당 60번으로 보내기를 제한하고, 시트가 끝없이 늘지 않게 상한을 둔다.
+// - 오류 내용은 밖으로 내보내지 않는다.
 
-// js/games.js 랑 맞춰야 함
+// js/games.js 와 맞춰야 함. max는 게임에서 실제로 나올 수 있는 최고점 근처로.
 var GAMES = {
   reaction: { order: 'asc', min: 80, max: 2000 },
   japan: { order: 'desc', min: 0, max: 99999 },
-  deepsea: { order: 'desc', min: 0, max: 9999 },
-  alley: { order: 'desc', min: 0, max: 20000 },
-  popo: { order: 'desc', min: 0, max: 999 },
-  velvet: { order: 'desc', min: 0, max: 999999 },
+  deepsea: { order: 'desc', min: 0, max: 3200 },
+  alley: { order: 'desc', min: 0, max: 7000 },
 };
+var MAX_SCORE_ROWS = 3000;
+var MAX_COMMENT_ROWS = 3000;
+var GLOBAL_PER_MIN = 60;
 
 function sheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -24,10 +32,27 @@ function sheet_() {
 
 function out_(data, cb) {
   var json = JSON.stringify(data);
-  if (cb && /^[\w.]+$/.test(cb)) {
+  if (cb && /^[\w.]{1,60}$/.test(cb)) {
     return ContentService.createTextOutput(cb + '(' + json + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
   return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+}
+
+// 시트가 수식으로 해석하지 않게: 위험한 첫 글자를 떼고, 꺾쇠·따옴표를 지운다
+function safeText_(s, maxLen) {
+  s = String(s || '').replace(/[<>"'`]/g, '').replace(/\s+/g, ' ').trim();
+  while (/^[=+\-@\t\r]/.test(s)) s = s.slice(1).trim();
+  return s.slice(0, maxLen);
+}
+
+// 서버 전체 분당 요청 수 제한 (닉네임을 바꿔 가며 도배하는 것 막기)
+function globalLimit_() {
+  var cache = CacheService.getScriptCache();
+  var key = 'g_' + Math.floor(Date.now() / 60000);
+  var n = Number(cache.get(key) || 0);
+  if (n >= GLOBAL_PER_MIN) return false;
+  cache.put(key, String(n + 1), 120);
+  return true;
 }
 
 function readAll_() {
@@ -47,7 +72,7 @@ function sorted_(game, rows) {
 }
 
 function cleanNick_(n) {
-  n = String(n || '').replace(/[<>"'`=]/g, '').trim().slice(0, 10);
+  n = safeText_(n, 10).replace(/=/g, '');
   return n.length >= 2 ? n : '';
 }
 
@@ -57,12 +82,12 @@ function submit_(p) {
   var score = Number(p.score);
   if (!g) return { error: '없는 게임' };
   if (!nick) return { error: '닉네임은 2~10자' };
-  if (!isFinite(score) || score < g.min || score > g.max) return { error: '기록이 이상함' };
+  if (!isFinite(score) || score < g.min || score > g.max || Math.round(score) !== score) return { error: '기록이 이상함' };
 
-  // 같은 사람이 너무 자주 못 보내게 (5초)
   var cache = CacheService.getScriptCache();
   var key = 'last_' + p.game + '_' + nick;
   if (cache.get(key)) return { error: '잠깐 있다가 다시' };
+  if (!globalLimit_()) return { error: '지금 요청이 많아요. 잠시 후 다시' };
   cache.put(key, '1', 5);
 
   var lock = LockService.getScriptLock();
@@ -76,6 +101,7 @@ function submit_(p) {
     }
     var improved = true;
     if (row < 0) {
+      if (values.length - 1 >= MAX_SCORE_ROWS) return { error: '랭킹이 가득 찼어요' };
       sh.appendRow([p.game, nick, score, Date.now()]);
     } else {
       var old = Number(values[row][2]);
@@ -106,6 +132,7 @@ function commentSheet_() {
 }
 
 function comments_(game) {
+  if (!GAMES[game]) return { comments: [] };
   var values = commentSheet_().getDataRange().getValues();
   var out = [];
   for (var i = values.length - 1; i >= 1 && out.length < 100; i--) {
@@ -117,20 +144,23 @@ function comments_(game) {
 function comment_(p) {
   if (!GAMES[p.game]) return { error: '없는 게임' };
   var kind = { nick: 1, real: 1, anon: 1 }[p.kind] ? p.kind : 'anon';
-  var name = String(p.name || '').replace(/[<>"'`=]/g, '').trim().slice(0, 10);
-  var text = String(p.text || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 200);
+  var name = safeText_(p.name, 10).replace(/=/g, '');
+  var text = safeText_(p.text, 200);
   if (name.length < 2) return { error: '이름은 2자 이상' };
   if (text.length < 2) return { error: '내용을 입력해 주세요' };
   var cache = CacheService.getScriptCache();
   var key = 'cm_' + p.game + '_' + name;
   if (cache.get(key)) return { error: '조금 있다가 다시 남겨 주세요' };
+  if (!globalLimit_()) return { error: '지금 요청이 많아요. 잠시 후 다시' };
   cache.put(key, '1', 10);
-  commentSheet_().appendRow([p.game, kind, name, text, Date.now()]);
+  var sh = commentSheet_();
+  if (sh.getLastRow() - 1 >= MAX_COMMENT_ROWS) return { error: '코멘트가 가득 찼어요' };
+  sh.appendRow([p.game, kind, name, text, Date.now()]);
   return { ok: true };
 }
 
 function doGet(e) {
-  var p = e.parameter || {};
+  var p = (e && e.parameter) || {};
   var res;
   try {
     if (p.action === 'submit') res = submit_(p);
@@ -138,7 +168,7 @@ function doGet(e) {
     else if (p.action === 'comment') res = comment_(p);
     else res = readAll_();
   } catch (err) {
-    res = { error: String(err) };
+    res = { error: '서버에서 처리하지 못했어요. 잠시 후 다시 시도해 주세요.' };
   }
   return out_(res, p.callback);
 }
