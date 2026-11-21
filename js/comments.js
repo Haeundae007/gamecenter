@@ -2,7 +2,7 @@
 //   import { mountComments } from '../../js/comments.js';
 //   mountComments(document.getElementById('comments'), 'japan');
 // 저장은 store.js랑 같은 규칙: SERVER_URL 비어 있으면 이 브라우저에만, 있으면 구글 시트.
-import { SERVER_URL } from './store.js?v=4';
+import { SERVER_URL } from './store.js?v=5';
 
 const LOCAL_KEY = 'gc_comments';
 const KINDS = { nick: '닉네임', real: '실명', anon: '익명' };

@@ -1,7 +1,7 @@
-import { submitScore, myNick } from '../../js/gc.js?v=4';
-import { mountComments } from '../../js/comments.js?v=4';
-import { PARTS, MIND, BODIES, TEMPER, NAME_FRONT, SCI_A, SCI_B } from './data.js?v=4';
-import { drawCreature, DEFAULT } from './draw.js?v=4';
+import { submitScore, myNick } from '../../js/gc.js?v=5';
+import { mountComments } from '../../js/comments.js?v=5';
+import { PARTS, MIND, BODIES, TEMPER, NAME_FRONT, SCI_A, SCI_B } from './data.js?v=5';
+import { drawCreature, DEFAULT } from './draw.js?v=5';
 
 mountComments(document.getElementById('comments'), 'deepsea');
 

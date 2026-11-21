@@ -568,6 +568,27 @@ body{margin:0}
   function localRows() { try { return JSON.parse(localStorage.getItem(LOCAL_KEY)) || []; } catch (e) { return []; } }
   function saveLocal(row) { try { var r = localRows(); r.push(row); localStorage.setItem(LOCAL_KEY, JSON.stringify(r.slice(-200))); } catch (e) { /* 저장 불가 */ } }
   pool = localRows().map(function (r) { return r.msg; });
+
+  // 게임센터 랭킹 서버(구글 시트)에 보낸다. 이름은 시트 주인만 보고, 새들은 말 내용만 받아서 띄운다.
+  var SERVER_URL = 'https://script.google.com/macros/s/AKfycbwrGVJVSbxfMIp1Nn4qYQ-gjljjbBdLn41hGGuMDfW1cV3jHCj_RbUFq6Q-YeGb0zZirw/exec';
+  var useServer = !window.claude && /^https?:$/.test(location.protocol);
+  function callServer(params) {
+    return new Promise(function (ok, fail) {
+      var cb = '__w' + Date.now() + Math.floor(Math.random() * 1e6), s = document.createElement('script');
+      var timer = setTimeout(function () { done(); fail(new Error('timeout')); }, 12000);
+      function done() { clearTimeout(timer); delete window[cb]; s.remove(); }
+      window[cb] = function (data) { done(); ok(data); };
+      params.callback = cb;
+      s.src = SERVER_URL + '?' + Object.keys(params).map(function (k) { return k + '=' + encodeURIComponent(params[k]); }).join('&');
+      s.onerror = function () { done(); fail(new Error('network')); };
+      document.head.appendChild(s);
+    });
+  }
+  if (useServer) {
+    callServer({ action: 'words' }).then(function (d) {
+      if (d && Array.isArray(d.words)) pool = d.words.filter(function (m) { return typeof m === 'string' && m.trim(); }).concat(pool);
+    }).catch(function () {});
+  }
   function hint(text) {
     $('hintText').textContent = text; $('hint').hidden = false;
     clearTimeout(window.__hintTimer);
@@ -613,6 +634,14 @@ body{margin:0}
     queue.unshift(msg);                 // 다음 차례에 새들이 띄운다
     nextShow = Math.min(nextShow, 6);
     $('word').value = ''; $('word').blur();
+    if (useServer) {
+      saving = true; pool.push(msg);
+      try {
+        var r = await callServer({ action: 'word', name: who, text: msg });
+        hint(r && r.ok ? '보냈어요. 새들이 가끔 이 말을 띄울 거예요.' : (r && r.error) || '보내지 못했어요.');
+      } catch (err) { saveLocal({ name: who, msg: msg, at: Date.now() }); hint('보내지 못했어요. 이 화면에서만 띄울게요.'); }
+      saving = false; return;
+    }
     if (!db || !me) { saveLocal({ name: who, msg: msg, at: Date.now() }); pool.push(msg); hint('남겼어요. 새들이 가끔 이 말을 띄울 거예요. (이 기기에만 저장돼요)'); return; }
     saving = true;
     try {

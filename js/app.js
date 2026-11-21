@@ -1,6 +1,6 @@
-import { GAMES, gameById } from './games.js?v=4';
-import { store, isLocal, overall } from './store.js?v=4';
-import { myNick } from './gc.js?v=4';
+import { GAMES, gameById } from './games.js?v=5';
+import { store, isLocal, overall } from './store.js?v=5';
+import { myNick } from './gc.js?v=5';
 
 const view = document.getElementById('view');
 

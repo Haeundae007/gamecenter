@@ -2,8 +2,8 @@
 // 길과 일부 건물은 OpenStreetMap 데이터(map.js)를 쓴다.
 // 화면에 글로 상황을 설명하지 않는다. 생김새·동작·소리·화면 효과로만 보여 준다.
 // 가벼움: 움직이지 않는 물체는 재질별로 한 덩어리로 합쳐서 그리고, 진짜 조명은 플레이어 근처 몇 개만 켠다.
-import { submitScore } from '../../js/gc.js?v=4';
-import { ROUTE, BUILDINGS } from './map.js?v=4';
+import { submitScore } from '../../js/gc.js?v=5';
+import { ROUTE, BUILDINGS } from './map.js?v=5';
 
 const $ = id => document.getElementById(id);
 const T = window.THREE;
