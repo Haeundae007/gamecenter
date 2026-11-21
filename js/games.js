@@ -7,7 +7,6 @@ export const GAMES = [
   {
     id: 'reaction',
     title: '반응속도 테스트',
-    desc: '초록색으로 바뀌는 순간을 잡아보세요.',
     url: 'games/reaction/',
     order: 'asc',
     unit: 'ms',
@@ -19,7 +18,6 @@ export const GAMES = [
   {
     id: 'deepsea',
     title: '심해 생물 만들기',
-    desc: '질문에 답할수록 생물이 자라나요. 성격까지 정해지는 나만의 심해 생물 도감.',
     url: 'games/deepsea/',
     order: 'desc',
     unit: '점',
@@ -31,7 +29,6 @@ export const GAMES = [
   {
     id: 'alley',
     title: '흡연충뻑치기게임',
-    desc: '명학역 1번 출구에서 에스키스까지, 만안로 1인칭.',
     url: 'games/alley/',
     order: 'desc',
     unit: '점',
@@ -43,7 +40,6 @@ export const GAMES = [
   {
     id: 'words',
     title: '하고 싶은 말',
-    desc: '안개 낀 갈대밭 위 찌르레기 떼에게 말을 남기면, 새들이 가끔 그 말을 하늘에 띄워요.',
     url: 'games/words/',
     noRank: true,
     order: 'desc',

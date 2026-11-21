@@ -82,7 +82,7 @@ body{margin:0}
     } catch (e) { return true; }
   })();
   var N = slowGpu ? 1600 : mobile ? 2600 : 4200;
-  var REEDS = slowGpu ? 9000 : mobile ? 12000 : 24000;
+  var REEDS = slowGpu ? 22000 : mobile ? 16000 : 34000;
   var calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ---------- 안개 낀 아침의 색 ---------- */
@@ -236,7 +236,7 @@ body{margin:0}
     reedGeo.setAttribute('position', new T.Float32BufferAttribute(p, 3));
     var off = new Float32Array(REEDS * 3), info = new Float32Array(REEDS * 4), extra = new Float32Array(REEDS);
     for (var k = 0; k < REEDS; k++) {
-      var z, x, near = k < REEDS * 0.32;
+      var z, x, near = k < REEDS * (slowGpu ? 0.45 : 0.32);
       if (near) {            // 눈앞의 키 큰 갈대
         // 시야(왼쪽으로 크게 열려 있다)를 다 덮도록 깐다
         z = 37.5 - 30 * Math.pow(Math.random(), 0.8);
@@ -251,7 +251,7 @@ body{margin:0}
       info[k * 4] = (near ? 0.6 + Math.min(1, (40 - z) / 26) * 1.0 + Math.random() * 0.5 : 0.8 + Math.random() * 1.1) * tall;
       info[k * 4 + 1] = Math.random() * 6.283;
       info[k * 4 + 2] = Math.random();
-      info[k * 4 + 3] = (near ? 0.018 + Math.random() * 0.016 : 0.05 + Math.random() * 0.05) * (slowGpu ? 2.2 : 1);
+      info[k * 4 + 3] = (near ? 0.018 + Math.random() * 0.016 : 0.05 + Math.random() * 0.05) * (slowGpu ? 1.5 : 1);
       extra[k] = Math.random() < (near ? 0.45 : 0.2) ? 1 : 0;   // 이삭이 달린 갈대
     }
     reedGeo.setAttribute('offset', new T.InstancedBufferAttribute(off, 3));
