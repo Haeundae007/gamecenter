@@ -1,8 +1,8 @@
 // 게임 페이지에서 불러다 쓰는 공용 코드.
 //   import { submitScore } from '../../js/gc.js';
 //   submitScore('reaction', 213);   // 끝나면 이거 한 줄
-import { store, validScore, cleanNick } from './store.js?v=5';
-import { gameById } from './games.js?v=5';
+import { store, validScore, cleanNick } from './store.js?v=6';
+import { gameById } from './games.js?v=6';
 
 const NICK_KEY = 'gc_nick';
 

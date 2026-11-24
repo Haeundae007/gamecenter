@@ -1,9 +1,9 @@
-// 흡연충 뻑치기 — 1인칭. 명학역 1번 출구에서 만안로 골목을 따라 에스키스안양 A동까지.
+// 길빵충 뻑치기 — 1인칭. 명학역 1번 출구에서 만안로 골목을 따라 에스키스안양 A동까지.
 // 길과 일부 건물은 OpenStreetMap 데이터(map.js)를 쓴다.
 // 화면에 글로 상황을 설명하지 않는다. 생김새·동작·소리·화면 효과로만 보여 준다.
 // 가벼움: 움직이지 않는 물체는 재질별로 한 덩어리로 합쳐서 그리고, 진짜 조명은 플레이어 근처 몇 개만 켠다.
-import { submitScore } from '../../js/gc.js?v=5';
-import { ROUTE, BUILDINGS } from './map.js?v=5';
+import { submitScore } from '../../js/gc.js?v=6';
+import { ROUTE, BUILDINGS } from './map.js?v=6';
 
 const $ = id => document.getElementById(id);
 const T = window.THREE;

@@ -28,7 +28,7 @@ export const GAMES = [
   },
   {
     id: 'alley',
-    title: '흡연충뻑치기게임',
+    title: '길빵충뻑치기게임',
     url: 'games/alley/',
     order: 'desc',
     unit: '점',

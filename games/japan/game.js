@@ -1,6 +1,6 @@
-import { WORDS } from './words.js?v=5';
-import { makeKiwon, drawSprite, drawRoom } from './sprite.js?v=5';
-import { submitScore } from '../../js/gc.js?v=5';
+import { WORDS } from './words.js?v=6';
+import { makeKiwon, drawSprite, drawRoom } from './sprite.js?v=6';
+import { submitScore } from '../../js/gc.js?v=6';
 
 // ---- 규칙 ---------------------------------------------------------------------
 const DAYS = 11;              // 단어 440개 = 하루 40개 x 11일

@@ -1,6 +1,6 @@
 // 점수 저장소.
 // 지금은 LocalStore(이 브라우저에만 저장). 구글 시트 붙이면 SERVER_URL만 채우면 됨.
-import { GAMES, gameById } from './games.js?v=5';
+import { GAMES, gameById } from './games.js?v=6';
 
 export const SERVER_URL = 'https://script.google.com/macros/s/AKfycbwrGVJVSbxfMIp1Nn4qYQ-gjljjbBdLn41hGGuMDfW1cV3jHCj_RbUFq6Q-YeGb0zZirw/exec'; // Apps Script 배포 주소 (server/Code.gs 참고)
 
